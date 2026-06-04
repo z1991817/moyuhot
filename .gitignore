@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/.venv/
+venv/
+.venv/
+
+# Build outputs
+dist/
+frontend/dist/
+build/
+coverage/
+htmlcov/
+
+# Framework and tool caches
+.astro/
+frontend/.astro/
+frontend/.lighthouse/
+.ruff_cache/
+backend/.ruff_cache/
+.pytest_cache/
+backend/.pytest_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.pyright/
+frontend/scripts/.font-cache/
+
+# Runtime data and generated local artifacts
+.scratch/
+backend/data/
+tmp_home.json
+*.db
+*.sqlite
+*.sqlite3
+*.log
+*.out.log
+*.err.log
+
+# Environment and machine-local settings
+.env
+.env.*
+!.env.example
+!.env.*.example
+.claude/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

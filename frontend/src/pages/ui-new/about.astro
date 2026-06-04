@@ -1,0 +1,70 @@
+---
+import UiNewSeo from "../../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
+import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
+import { SITE_NAME, SITE_URL } from "../../lib/seo";
+
+const pageTitle = "关于摸鱼热榜 - 参与共建与版权声明";
+const pageDescription = "摸鱼热榜开源版说明。欢迎通过开源仓库参与共建；本站只聚合公开热榜标题、热度、排名和原站链接。";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  name: pageTitle,
+  url: `${SITE_URL}/ui-new/about`,
+  description: pageDescription,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+};
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/ui-new/about" structuredData={structuredData} />
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/about.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <UiNewTopBar active="about" />
+
+      <main class="about-layout">
+        <article class="content">
+          <section class="contact-section" aria-labelledby="contact-title">
+            <div class="contact-copy">
+              <h1 id="contact-title">参与共建</h1>
+              <p>看到错漏、想加平台、或者有更好的实现方式，欢迎通过开源仓库反馈。小工具最好的维护方式，是让好想法可以被看见、讨论和合并。</p>
+              <dl class="contact-list">
+                <div>
+                  <dt>Issue</dt>
+                  <dd>Bug / 平台建议</dd>
+                </div>
+                <div>
+                  <dt>PR</dt>
+                  <dd>修复 / 改进</dd>
+                </div>
+              </dl>
+            </div>
+            <div class="contact-actions">
+              <a class="text-link" href="https://github.com/z1991817/moyuhot" target="_blank" rel="noopener noreferrer">查看开源仓库</a>
+            </div>
+          </section>
+
+          <section class="text-section legal" aria-labelledby="legal-title">
+            <h2 id="legal-title">版权与数据声明</h2>
+            <p>摸鱼热榜展示的标题、热度、排名与链接，均来源于各平台公开可访问的信息。相关内容的版权归原始创作者或发布平台所有。</p>
+            <p>本站尊重知识产权，只提供信息索引与跳转服务，不复制、不存储、不转码源站正文、图片、视频或评论内容，也不会生成、篡改任何源站内容。</p>
+            <p>若你认为页面中的索引链接涉及侵权或不当展示，请通过开源仓库反馈。确认后，我们会尽快处理并移除相关入口。</p>
+          </section>
+        </article>
+      </main>
+      <UiNewFooter />
+    </div>
+  </body>
+</html>

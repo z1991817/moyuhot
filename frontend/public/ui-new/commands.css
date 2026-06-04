@@ -1,0 +1,309 @@
+/* commands.css — toolbox/commands 页面专属样式 */
+
+.commands-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 58px);
+  max-width: 1240px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+/* ── 左侧边栏 ── */
+.commands-sidebar {
+  position: sticky;
+  top: 58px;
+  height: calc(100vh - 58px);
+  overflow-y: auto;
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0 24px;
+}
+
+.sidebar-header {
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 8px;
+}
+
+.sidebar-kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 6px;
+}
+
+.sidebar-header h1 {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.tool-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+}
+
+.tool-nav-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border-radius: var(--radius-md);
+  padding: 9px 10px;
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
+  cursor: pointer;
+}
+
+.tool-nav-item:hover {
+  background: var(--muted-background);
+}
+
+.tool-nav-item.is-active {
+  background: var(--accent-subtle);
+}
+
+.tool-nav-item.is-active .tool-nav-name {
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.tool-nav-icon {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  object-fit: contain;
+  padding: 3px;
+}
+
+.tool-nav-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tool-nav-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.tool-nav-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-footer {
+  padding: 12px 20px 0;
+  border-top: 1px solid var(--border-light);
+  margin-top: 8px;
+}
+
+.sidebar-footer p {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── 右侧内容区 ── */
+.commands-content {
+  padding: 32px 40px 64px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.tool-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tool-header {
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 16px;
+}
+
+.tool-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.tool-title-row h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.tool-docs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px 8px;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.tool-docs-link:hover {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+  background: var(--muted-background);
+}
+
+.tool-docs-link svg {
+  width: 11px;
+  height: 11px;
+}
+
+.tool-subtitle {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ── 命令分区 ── */
+.cmd-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cmd-section-title {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.cmd-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cmd-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color 100ms ease;
+}
+
+.cmd-row:last-child {
+  border-bottom: none;
+}
+
+.cmd-row:hover {
+  background: var(--muted-background);
+}
+
+.cmd-cell {
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cmd-cell-name {
+  border-right: 1px solid var(--border-light);
+}
+
+.cmd-code {
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  padding: 0;
+}
+
+.cmd-cell-desc span {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.cmd-example {
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: transparent;
+  padding: 0;
+}
+
+/* ── 响应式 ── */
+@media (max-width: 900px) {
+  .commands-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .commands-sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .tool-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tool-nav-item {
+    gap: 6px;
+  }
+
+  .tool-nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tool-nav-sub {
+    display: none;
+  }
+
+  .commands-content {
+    padding: 24px 16px 48px;
+  }
+
+  .cmd-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cmd-cell-name {
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 8px;
+  }
+}

@@ -1,0 +1,66 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="摸鱼热榜">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&amp;display=swap');
+    </style>
+    <pattern id="moyuDots" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
+      <rect width="7" height="7" fill="#FF3D7F"/>
+      <circle cx="3.5" cy="3.5" r="1.3" fill="#1A1714" opacity="0.22"/>
+    </pattern>
+  </defs>
+
+  <!-- 速度线 -->
+  <g stroke="#1A1714" stroke-width="3.5" stroke-linecap="round" fill="none">
+    <line x1="14" y1="168" x2="42" y2="154"/>
+    <line x1="32" y1="190" x2="58" y2="176"/>
+  </g>
+
+  <!-- 鱼整体 -18° 斜向右上方 -->
+  <g transform="rotate(-18 120 95)">
+    <!-- 尾鳍 -->
+    <path d="M 60 78 L 16 56 L 50 95 L 16 130 L 60 110 Z"
+          fill="url(#moyuDots)" stroke="#1A1714" stroke-width="3.5" stroke-linejoin="round"/>
+
+    <!-- 背鳍（黄色） -->
+    <path d="M 115 65 L 138 38 L 155 63 Z"
+          fill="#FFC93C" stroke="#1A1714" stroke-width="3" stroke-linejoin="round"/>
+
+    <!-- 鱼身 -->
+    <path d="M 218 80 Q 232 70 220 58 Q 195 45 155 52 Q 105 60 75 78
+             Q 58 88 55 100 Q 58 112 75 122 Q 110 132 155 128
+             Q 195 124 218 112 Q 230 100 218 80 Z"
+          fill="url(#moyuDots)" stroke="#1A1714" stroke-width="3.5" stroke-linejoin="round"/>
+
+    <!-- 胸鳍（黄色） -->
+    <path d="M 148 108 L 162 128 L 172 108 Z"
+          fill="#FFC93C" stroke="#1A1714" stroke-width="2.5" stroke-linejoin="round"/>
+
+    <!-- 大眼 + 四角星高光 -->
+    <circle cx="195" cy="82" r="11" fill="#1A1714"/>
+    <path d="M 192 76 L 193.5 80 L 197 81 L 193.5 82
+             L 192 86 L 190.5 82 L 187 81 L 190.5 80 Z"
+          fill="#FFF4D6"/>
+
+    <!-- 笑 -->
+    <path d="M 205 97 Q 213 102 220 97"
+          fill="none" stroke="#1A1714" stroke-width="2.8" stroke-linecap="round"/>
+
+    <!-- 腮红 -->
+    <circle cx="180" cy="105" r="5" fill="#FF3D7F" opacity="0.55"/>
+
+    <!-- 鼻尖黄爆点 -->
+    <g transform="translate(235 70)">
+      <path d="M 0 -10 L 2.5 -2.5 L 10 0 L 2.5 2.5
+               L 0 10 L -2.5 2.5 L -10 0 L -2.5 -2.5 Z"
+            fill="#FFC93C" stroke="#1A1714" stroke-width="2" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- 文字标 -->
+  <text x="120" y="220"
+        font-family="'Ma Shan Zheng', cursive"
+        font-size="26"
+        fill="#1A1714"
+        text-anchor="middle"
+        letter-spacing="6">摸鱼热榜</text>
+</svg>

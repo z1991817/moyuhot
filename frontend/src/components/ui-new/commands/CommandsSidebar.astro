@@ -1,0 +1,34 @@
+---
+import type { AiToolCommandGuide } from "../../../lib/ai-tool-commands";
+
+type Props = {
+  tools: AiToolCommandGuide[];
+};
+
+const { tools } = Astro.props;
+---
+
+<aside class="commands-sidebar" aria-label="AI 工具列表">
+  <div class="sidebar-header">
+    <p class="sidebar-kicker">TOOLBOX · 命令手册</p>
+    <h1>AI 工具指令</h1>
+  </div>
+  <nav class="tool-nav" aria-label="选择工具">
+    {tools.map((tool) => (
+      <a
+        class="tool-nav-item"
+        href={`#${tool.id}`}
+        data-tool-id={tool.id}
+      >
+        <img class="tool-nav-icon" src={tool.icon} alt="" loading="lazy" />
+        <span class="tool-nav-copy">
+          <span class="tool-nav-name">{tool.name}</span>
+          <span class="tool-nav-sub">{tool.subtitle}</span>
+        </span>
+      </a>
+    ))}
+  </nav>
+  <div class="sidebar-footer">
+    <p>数据来自各官方文档，以实际版本为准。</p>
+  </div>
+</aside>

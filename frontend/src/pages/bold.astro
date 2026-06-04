@@ -1,0 +1,1601 @@
+---
+import BaseLayout from "../components/BaseLayout.astro";
+import MainTopBar from "../components/MainTopBar.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import { fetchHome, fetchUsStocks } from "../lib/api";
+import { getOffWorkStatus } from "../lib/offwork";
+import { getProgrammerAlmanac } from "../lib/programmer-calendar";
+import { SITE_KEYWORDS, SITE_NAME, SITE_URL } from "../lib/seo";
+import type { CalendarInfo, MarketStock, Trend } from "../lib/types";
+
+import "../styles/global.css";
+
+const fallbackCalendar: CalendarInfo = {
+  date: new Date().toISOString().slice(0, 10),
+  isRestDay: false,
+  kind: "workday",
+  name: null,
+};
+
+const [data, stocksData] = await Promise.all([
+  fetchHome()
+    .then((payload) => ({ ...payload, calendar: payload.calendar ?? fallbackCalendar }))
+    .catch(() => ({
+      trends: [],
+      markets: [],
+      sources: [],
+      calendar: fallbackCalendar,
+      stale: true,
+      updatedAt: new Date().toISOString(),
+    })),
+  fetchUsStocks().catch(() => ({
+    items: [] as MarketStock[],
+    stale: true,
+    updatedAt: new Date().toISOString(),
+  })),
+]);
+
+const LAUNCH_DATE = new Date("2026-05-19T00:00:00+08:00");
+const ISSUE_NO = Math.floor((Date.now() - LAUNCH_DATE.getTime()) / 86_400_000) + 1;
+
+// 分组顺序：社交娱乐 → 资讯新闻 → 财经 → 科技开发 → 问答社区
+const BOARD_ORDER: string[] = [
+  "weibo", "douyin", "zhihu", "bilibili-hot-search", "baidu", "toutiao",
+  "kuaishou", "hupu", "douban", "thepaper", "tieba", "36kr-renqi",
+  "juejin", "github-trending-today", "ithome", "wallstreetcn-hot", "cls-hot", "jin10",
+  "v2ex", "linux-do", "ifeng", "tencent-hot", "sspai", "coolapk", "gelonghui", "xueqiu-hotstock", "nowcoder",
+];
+
+type BoardMeta = {
+  platform: string;
+  className: string;
+  icon: string;
+  subline: string;
+  tag: string;
+  foot: string;
+  sticker?: { label: string; style: string };
+};
+
+const BOARD_META: Record<string, BoardMeta> = {
+  // 社交娱乐
+  weibo: { platform: "weibo", className: "b-weibo", icon: "微", subline: "WEIBO · 实时", tag: "在翻滚", foot: "HOT · 持续翻滚", sticker: { label: "FRESH", style: "top:-12px;right:18px;background:var(--yellow);" } },
+  douyin: { platform: "douyin", className: "b-douyin", icon: "抖", subline: "DOUYIN · 此刻", tag: "LIVE", foot: "FOR YOU · 沉浸黑洞" },
+  kuaishou: { platform: "kuaishou", className: "b-kuaishou", icon: "快", subline: "KUAISHOU · 热榜", tag: "老铁", foot: "KWAI · 双击666" },
+  "bilibili-hot-search": { platform: "bilibili-hot-search", className: "b-bili", icon: "B", subline: "B 站 · 全站", tag: "三连", foot: "三连预警", sticker: { label: "SUB!", style: "top:-10px;left:-10px;background:var(--pink);color:#fff;transform:rotate(-8deg);" } },
+  douban: { platform: "douban", className: "b-douban", icon: "豆", subline: "DOUBAN · 文艺青年", tag: "小组", foot: "豆瓣 · 小组精选", sticker: { label: "小组", style: "top:-12px;right:18px;background:var(--ink);color:var(--paper);" } },
+  hupu: { platform: "hupu", className: "b-hupu", icon: "H", subline: "HUPU · 步行街", tag: "BBS", foot: "STREET · 24H", sticker: { label: "BBS", style: "top:-12px;right:-10px;background:var(--green);color:#fff;transform:rotate(6deg);" } },
+  // 资讯新闻
+  toutiao: { platform: "toutiao", className: "b-toutiao", icon: "头", subline: "TOUTIAO · 推荐", tag: "算法推", foot: "今日头条 · 热榜" },
+  baidu: { platform: "baidu", className: "b-baidu", icon: "百", subline: "BAIDU · 搜索", tag: "热搜", foot: "百度 · 热搜榜" },
+  thepaper: { platform: "thepaper", className: "b-thepaper", icon: "澎", subline: "THEPAPER · 严肃", tag: "深度", foot: "澎湃 · 新闻纸" },
+  ifeng: { platform: "ifeng", className: "b-ifeng", icon: "凤", subline: "IFENG · 资讯", tag: "凤凰", foot: "凤凰网 · 热点" },
+  "tencent-hot": { platform: "tencent-hot", className: "b-tencent", icon: "腾", subline: "TENCENT · 早报", tag: "综合", foot: "腾讯新闻 · 早报" },
+  // 财经
+  "wallstreetcn-hot": { platform: "wallstreetcn-hot", className: "b-wsj", icon: "华", subline: "WALLST · 见闻", tag: "财经", foot: "华尔街见闻 · 热门", sticker: { label: "BULL", style: "top:-12px;right:18px;background:var(--green);color:#fff;" } },
+  "cls-hot": { platform: "cls-hot", className: "b-cls", icon: "财", subline: "CLS · 快讯", tag: "快讯", foot: "财联社 · 热门" },
+  jin10: { platform: "jin10", className: "b-jin10", icon: "金", subline: "JIN10 · 数据", tag: "数据", foot: "金十数据 · 热榜" },
+  gelonghui: { platform: "gelonghui", className: "b-gelonghui", icon: "格", subline: "GLH · 研究", tag: "研报", foot: "格隆汇 · 热门" },
+  "xueqiu-hotstock": { platform: "xueqiu-hotstock", className: "b-xueqiu", icon: "雪", subline: "XUEQIU · 热股", tag: "热股", foot: "雪球 · 热门股票" },
+  // 科技开发
+  "github-trending-today": { platform: "github-trending-today", className: "b-github", icon: "G", subline: "DAILY · 今日", tag: "技术宅", foot: "ALL LANGS · TODAY" },
+  juejin: { platform: "juejin", className: "b-juejin", icon: "掘", subline: "JUEJIN · 开发者", tag: "掘金", foot: "稀土掘金 · 热榜" },
+  sspai: { platform: "sspai", className: "b-sspai", icon: "少", subline: "SSPAI · 效率", tag: "效率", foot: "少数派 · 精选" },
+  ithome: { platform: "ithome", className: "b-ithome", icon: "IT", subline: "ITHOME · 科技", tag: "科技", foot: "IT之家 · 热榜" },
+  coolapk: { platform: "coolapk", className: "b-coolapk", icon: "酷", subline: "COOLAPK · 应用", tag: "安卓", foot: "酷安 · 热门" },
+  nowcoder: { platform: "nowcoder", className: "b-nowcoder", icon: "牛", subline: "NOWCODER · 刷题", tag: "面试", foot: "牛客 · 讨论区" },
+  // 问答社区
+  zhihu: { platform: "zhihu", className: "b-zhihu", icon: "知", subline: "ZHIHU · 讨论中", tag: "谢邀", foot: "谢邀 · 人在工位" },
+  tieba: { platform: "tieba", className: "b-tieba", icon: "贴", subline: "TIEBA · 神奇生物", tag: "古早味", foot: "BAIDU · TIEBA" },
+  "36kr-renqi": { platform: "36kr-renqi", className: "b-36kr", icon: "氪", subline: "36KR · 人气", tag: "创业", foot: "36氪 · 人气榜" },
+  v2ex: { platform: "v2ex", className: "b-v2ex", icon: "V", subline: "V2EX · 分享", tag: "new", foot: "V2EX · LATEST" },
+  "linux-do": { platform: "linux-do", className: "b-linux-do", icon: "L", subline: "LINUX.DO · 热门", tag: "HOT", foot: "LINUX.DO · HOT RSS" },
+};
+
+const grouped = data.trends.reduce<Record<string, Trend[]>>((acc, item) => {
+  const bucket = acc[item.platform] ?? [];
+  bucket.push(item);
+  acc[item.platform] = bucket;
+  return acc;
+}, {});
+
+// 按固定顺序构建 boards，只包含有数据的平台
+const boards = BOARD_ORDER
+  .map((platform) => {
+    const items = grouped[platform] ?? [];
+    if (items.length === 0) return null;
+    const meta = BOARD_META[platform];
+    if (!meta) return null;
+    return {
+      platform,
+      meta,
+      items,
+      platformName: items[0]?.platformName ?? platform,
+      updatedAt: items[0]?.updatedAt ?? data.updatedAt,
+    };
+  })
+  .filter((b): b is NonNullable<typeof b> => b !== null);
+
+const staleText = data.stale ? "数据延迟" : "数据正常";
+const now = new Date(data.updatedAt);
+const nowDate = now.toLocaleDateString("zh-CN", {
+  month: "2-digit",
+  day: "2-digit",
+});
+const nowTime = now.toLocaleTimeString("zh-CN", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+const sourceCount = data.sources.length;
+const warmingCount = data.trends.filter((item) => item.rank > 0 && item.rank <= 3).length;
+
+const sortedMarkets = [...data.markets].sort((a, b) => {
+  const order = ["DJI", "SPX", "IXIC"];
+  const ai = order.indexOf(a.symbol);
+  const bi = order.indexOf(b.symbol);
+  return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+});
+const featuredMarkets = sortedMarkets.slice(0, 3);
+const hotStocks = stocksData.items.slice(0, 10);
+const indexTradeDate = featuredMarkets[0]?.tradeDate ?? "";
+const stockTradeDate = hotStocks[0]?.tradeDate ?? "";
+const marketStatus = data.markets[0]?.marketStatus ?? "closed";
+const marketDisclaimer = data.markets[0]?.disclaimer ?? "仅供信息展示，不构成投资建议";
+
+const marketStatusText = marketStatus === "open" ? "LIVE" : "CLOSED";
+const marketStatusClass = marketStatus === "open" ? "open" : "closed";
+
+function formatTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return "刚刚";
+  }
+  return d.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatHeat(heat: string | undefined, rank: number): string {
+  if (heat && heat.trim().length > 0) {
+    return heat;
+  }
+  return `TOP ${rank}`;
+}
+
+function idxClassBySymbol(symbol: string): string {
+  if (symbol === "DJI") {
+    return "idx idx-dow";
+  }
+  if (symbol === "SPX") {
+    return "idx idx-snp";
+  }
+  if (symbol === "IXIC") {
+    return "idx idx-nas";
+  }
+  return "idx idx-dow";
+}
+
+function idxChineseName(symbol: string, fallbackName: string): string {
+  if (symbol === "DJI") {
+    return "道琼斯";
+  }
+  if (symbol === "SPX") {
+    return "标普 500";
+  }
+  if (symbol === "IXIC") {
+    return "纳斯达克";
+  }
+  return fallbackName;
+}
+
+function formatSigned(value: number): string {
+  const abs = Math.abs(value).toFixed(2);
+  return value >= 0 ? `+${abs}` : `-${abs}`;
+}
+
+function formatTradeDate(iso: string): string {
+  if (!iso) return "";
+  // iso = "YYYY-MM-DD"，转成 "2026年05月16日"
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${y}年${m}月${d}日`;
+}
+
+function formatPriceParts(value: number): { whole: string; decimal: string } {
+  const fixed = value.toFixed(2);
+  const [whole, decimal] = fixed.split(".");
+  return { whole, decimal };
+}
+
+const initialOffworkStatus = getOffWorkStatus(new Date(), data.calendar);
+const initialOffworkCountdown = initialOffworkStatus.closed
+  ? (initialOffworkStatus.reason === "after-hours" ? "下班了，好好休息 ♡" : "今天不上班 ♡")
+  : initialOffworkStatus.countdown;
+
+const almanac = getProgrammerAlmanac(new Date());
+const restDayInfo = data.calendar;
+const showRestDayCopy = restDayInfo.isRestDay || Astro.url.searchParams.get("holiday") === "1";
+const mastTitle = showRestDayCopy
+  ? { row1Text: "放慢脚步", highlight: "享受生活的", row2Text: "慢节奏~" }
+  : { row1Text: "今天又是", highlight: "元气满满", row2Text: "的一天 ~" };
+
+const pageTitle = "摸鱼热榜大胆版 - 今日微博知乎B站抖音热搜聚合";
+const pageDescription =
+  "摸鱼热榜大胆版保留 Riso 拼贴风格，实时聚合微博、知乎、B站、抖音、贴吧、GitHub、V2EX 等公开热榜。";
+const homeStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: pageTitle,
+  url: `${SITE_URL}/bold`,
+  description: pageDescription,
+  keywords: SITE_KEYWORDS,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  about: ["热搜平台", "热搜聚合", "热搜榜", "新闻聚合阅读", "摸鱼平台", "摸鱼网站"],
+  hasPart: boards.slice(0, 12).map((board) => ({
+    "@type": "ItemList",
+    name: `${board.platformName}热榜`,
+    numberOfItems: board.items.length,
+    itemListElement: board.items.slice(0, 10).map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.title,
+      url: item.url,
+    })),
+  })),
+};
+
+type SparkPoint = { x: number; y: number };
+
+function buildSparkPoints(seed: string, trendUp: boolean): SparkPoint[] {
+  let hash = 0;
+  for (const ch of seed) {
+    hash = (hash * 31 + ch.charCodeAt(0)) % 997;
+  }
+  const points: SparkPoint[] = [];
+  const count = 10;
+  for (let i = 0; i < count; i += 1) {
+    const x = 2 + i * 12;
+    const base = trendUp ? 22 - i * 1.6 : 8 + i * 1.6;
+    const wobble = ((hash + i * 17) % 7) - 3;
+    const y = Math.max(2, Math.min(26, base + wobble));
+    points.push({ x, y });
+  }
+  return points;
+}
+
+function sparkPath(seed: string, trendUp: boolean): string {
+  const points = buildSparkPoints(seed, trendUp);
+  return points.map((p, idx) => `${idx === 0 ? "M" : "L"}${p.x} ${p.y}`).join(" " );
+}
+
+function idxAreaPath(seed: string, trendUp: boolean): string {
+  const points = buildSparkPoints(seed, trendUp).map((p) => ({ x: p.x * 1.85, y: p.y + (trendUp ? 18 : 6) }));
+  const line = points.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" " );
+  return `${line} L 218 54 L 2 54 Z`;
+}
+
+function idxLinePath(seed: string, trendUp: boolean): string {
+  const points = buildSparkPoints(seed, trendUp).map((p) => ({ x: p.x * 1.85, y: p.y + (trendUp ? 18 : 6) }));
+  return points.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" " );
+}
+---
+
+<BaseLayout title={pageTitle} description={pageDescription} canonical="/bold" structuredData={homeStructuredData}>
+<main class="wrap wide">
+
+  <MainTopBar
+    issueLabel={`摸鱼 ISSUE №${ISSUE_NO}`}
+    navItems={[
+      { href: "#boards-section", label: "热榜", active: true },
+      { href: "/about", label: "关于我" },
+      { href: "/", label: "简约版", uiVersion: "simple" },
+    ]}
+  >
+    <Fragment slot="crumbs">
+      <span><b>{nowDate}</b> 更新</span>
+      <span>全站状态 · {staleText}</span>
+      <span>同步时间 <b>{nowTime}</b></span>
+    </Fragment>
+  </MainTopBar>
+
+  <!-- MASTHEAD -->
+  <section class="mast">
+    <div>
+      <h1 class="title">
+        <span class="row1">{mastTitle.row1Text} <em>{mastTitle.highlight}</em></span>
+        <span class="row2">{mastTitle.row2Text}</span>
+        <svg class="squiggle" viewBox="0 0 340 34" fill="none">
+          <path d="M2 22 C 30 4, 60 38, 90 18 S 150 -4, 180 18 S 240 36, 270 18 S 330 4, 338 18" stroke="#FF3D7F" stroke-width="4.5" stroke-linecap="round"/>
+        </svg>
+      </h1>
+      <p class="lede">
+        今天互联网又发生了很多事。微博、知乎、B 站、虎扑……
+        全网 <b>{data.trends.length} 条</b>，帮你都盯着了，放心摸。
+      </p>
+    </div>
+
+    <aside class="figureCard">
+      <span class="tape"></span>
+      <span class="badge">DAILY!</span>
+      <h4>程序员黄历</h4>
+      <p class="alm-date">{almanac.date} · {almanac.fortune}</p>
+      <div class="alm-grid">
+        <div class="alm-col alm-do">
+          <span class="alm-label">宜</span>
+          <ul>
+            {almanac.dos.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+        <div class="alm-col alm-dont">
+          <span class="alm-label">忌</span>
+          <ul>
+            {almanac.donts.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+      </div>
+      <dl class="alm-meta">
+        <div><dt>编程吉位</dt><dd>{almanac.luckyDir}</dd></div>
+        <div><dt>编程凶位</dt><dd>{almanac.unluckyDir}</dd></div>
+        <div><dt>幸运编辑器</dt><dd>{almanac.luckyEditor}</dd></div>
+        <div><dt>幸运语言</dt><dd>{almanac.luckyLang}</dd></div>
+      </dl>
+    </aside>
+  </section>
+
+  <!-- TICKERS -->
+  <section class="tickers">
+    <div class="ticker">
+      <div class="lab">全网热度</div>
+      <div class="num">{data.trends.length.toLocaleString("zh-CN")}<small>条</small></div>
+      <div class="delta up">LIVE · 持续更新</div>
+      <svg viewBox="0 0 80 50"><polyline fill="none" stroke="#1F9F5F" stroke-width="3" points="2,40 14,32 26,36 38,18 50,24 62,8 78,14"/></svg>
+    </div>
+    <div class="ticker">
+      <div class="ticker-head">
+        <div class="lab">下班倒计时</div>
+        <button class="offwork-settings-btn" id="offwork-settings-open" type="button" aria-label="设置下班时间" title="设置下班时间">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="8" r="2.4"/>
+            <path d="M8 1.5v2M8 12.5v2M2.4 3.7l1.4 1.4M12.2 10.9l1.4 1.4M1.5 8h2M12.5 8h2M2.4 12.3l1.4-1.4M12.2 5.1l1.4-1.4"/>
+          </svg>
+        </button>
+      </div>
+      <div class="num"><span id="offwork-countdown" data-calendar={JSON.stringify(data.calendar)}>{initialOffworkCountdown}</span><small></small></div>
+      <div class="delta up" id="offwork-label">{restDayInfo.isRestDay ? `◎ ${restDayInfo.name ?? "休息日"}` : "18:00 下班"}</div>
+      <svg viewBox="0 0 80 50"><circle cx="40" cy="25" r="18" fill="none" stroke="#2540D9" stroke-width="3"/><path d="M40 25 L 40 12" stroke="#2540D9" stroke-width="3" stroke-linecap="round"/><path d="M40 25 L 52 25" stroke="#FF3D7F" stroke-width="3" stroke-linecap="round"/></svg>
+    </div>
+    <div class="ticker">
+      <div class="lab">正在升温</div>
+      <div class="num">{warmingCount.toLocaleString("zh-CN")}<small>条</small></div>
+      <div class="delta up">TOP 3 · 冒泡中</div>
+      <svg viewBox="0 0 80 50"><path d="M2 40 L 12 18 L 22 30 L 32 12 L 44 26 L 56 8 L 70 22 L 78 14" fill="none" stroke="#FF3D7F" stroke-width="3"/></svg>
+    </div>
+    <div class="ticker">
+      <div class="lab">信号来源</div>
+      <div class="num">{sourceCount}<small>源</small></div>
+      <div class="delta up">公开榜单 · 持续接入</div>
+      <svg viewBox="0 0 80 50">
+        <rect x="6" y="14" width="14" height="22" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+        <rect x="26" y="6" width="14" height="36" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+        <rect x="46" y="20" width="14" height="20" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+        <rect x="66" y="10" width="10" height="30" fill="none" stroke="#1A1714" stroke-width="2.5" rx="3"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- BOARDS -->
+  <section class="boards" id="boards-section">
+
+    {boards.map((board) => (
+      <article class={`board ${board.meta.className}`} data-platform={board.platform} data-platform-name={board.platformName}>
+        {board.meta.sticker ? (
+          <span class="sticker" style={board.meta.sticker.style}>{board.meta.sticker.label}</span>
+        ) : null}
+        <div class="b-head">
+          <div class="b-icon">{board.meta.icon}</div>
+          <div>
+            <div class="b-name">{board.platformName}</div>
+            <div class="b-sub">{board.meta.subline}</div>
+          </div>
+          <div class="b-actions">
+            <button class="b-btn b-refresh" type="button" title="刷新" aria-label="刷新">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 8a6 6 0 1 1 -1.76 -4.24"/>
+                <path d="M14 2v4h-4"/>
+              </svg>
+            </button>
+            <button class="b-btn b-expand" type="button" title="放大查看" aria-label="放大查看">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 2h4v4M6 14H2v-4M14 2l-5 5M2 14l5-5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="b-meta">更新 {formatTimeLabel(board.updatedAt)} · 在榜 {board.items.length} 条</div>
+        <ol class="b-list">
+          {board.items.map((item, idx) => (
+            <li class={idx === 0 ? "top1" : idx === 1 ? "top2" : idx === 2 ? "top3" : ""}>
+              <a href={item.url} target="_blank" rel="noopener noreferrer">
+                <span class="rk">{String(item.rank ?? idx + 1).padStart(2, "0")}</span>
+                <span class="ttl">{idx === 0 ? <b>{item.title}</b> : item.title}</span>
+                <span class="heat">{formatHeat(item.heat, item.rank ?? idx + 1)}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+        <div class="b-foot"><span>{board.meta.foot}</span></div>
+      </article>
+    ))}
+
+  </section>
+    <!-- US STOCKS WIDGET · 盘中偷瞄 -->
+  <section class="stocks">
+    <header class="stocks-head">
+      <span class="stocks-stamp">NYSE 偷瞄</span>
+      <div class="stocks-title">
+        <h3>美股今日大盘 <em>{marketStatus === "open" ? "BULL ?" : "SNOOZE"}</em></h3>
+        <p>
+          {indexTradeDate ? <span class="trade-date">AS OF {formatTradeDate(indexTradeDate)}</span> : null}
+          {" "}延迟行情，不作为投资参考。
+        </p>
+      </div>
+      <div class={`stocks-status ${marketStatusClass}`}>
+        <span class="dot"></span><b>{marketStatusText}</b> · {nowTime}
+      </div>
+    </header>
+
+    {featuredMarkets.length > 0 ? (
+      <div class="stocks-indices">
+        {featuredMarkets.map((item) => {
+          const up = item.change >= 0;
+          const price = formatPriceParts(item.price);
+          const gradId = `gd-${item.symbol.toLowerCase()}`;
+          const line = idxLinePath(item.symbol, up);
+          const area = idxAreaPath(item.symbol, up);
+          const last = line.split("L").at(-1)?.trim().split(" ") ?? ["218", "8"];
+          const cx = Number(last[0]);
+          const cy = Number(last[1]);
+          return (
+            <a href={item.url} target="_blank" rel="noopener noreferrer" class={`idx-link ${idxClassBySymbol(item.symbol)}`}>
+              <span class="sticker-tag">{item.symbol}</span>
+              <div class="idx-name">{idxChineseName(item.symbol, item.name)} <em>{item.name}</em></div>
+              <div class="idx-val">{price.whole}<small>.{price.decimal}</small></div>
+              <div class={`idx-delta ${up ? "up" : "down"}`}>
+                {up ? "▲" : "▼"} {formatSigned(item.change)} &nbsp;({formatSigned(item.changePct)}%)
+              </div>
+              <svg class="idx-spark" viewBox="0 0 220 54" preserveAspectRatio="none" fill="none">
+                <defs>
+                  <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stop-color={up ? "#1F9F5F" : "#FF3D7F"} stop-opacity={up ? ".35" : ".30"}/>
+                    <stop offset="1" stop-color={up ? "#1F9F5F" : "#FF3D7F"} stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d={area} fill={`url(#${gradId})`} />
+                <path d={line} stroke={up ? "#1F9F5F" : "#FF3D7F"} stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" />
+                <circle cx={cx} cy={cy} r="3.4" fill="#FFF4D6" stroke={up ? "#1F9F5F" : "#FF3D7F"} stroke-width="2"/>
+              </svg>
+              <div class="idx-foot"><span>{up ? "MOVE UP" : "MOVE DOWN"}</span><span>{formatTimeLabel(item.updatedAt)}</span></div>
+            </a>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="idx-empty">暂时没有拉到指数数据，稍后会自动刷新。</div>
+    )}
+
+    <div class="stocks-list-head">
+      <h4>热门个股 <em>· Hot Stocks{stockTradeDate ? ` · AS OF ${formatTradeDate(stockTradeDate)}` : ""}</em></h4>
+      <span class="rule"></span>
+      <span class="legend">▲ <b class="u">绿涨</b> &nbsp; ▼ <b class="d">粉跌</b> &nbsp;·&nbsp; 延迟行情</span>
+    </div>
+
+    {hotStocks.length > 0 ? (
+      <div class="stocks-list">
+        {hotStocks.map((item) => {
+          const up = item.changePct >= 0;
+          const spark = sparkPath(item.symbol, up);
+          return (
+            <a class={`stk ${up ? "up" : "down"}`} href={item.url} target="_blank" rel="noopener noreferrer">
+              <div class="stk-row1"><span class="tic">{item.symbol}</span><span class="cn">{item.name}</span></div>
+              <div class="stk-row2"><span class="px">$ {item.price.toFixed(2)}</span><span class="ch">{formatSigned(item.changePct)}%</span></div>
+              <svg class="stk-spark" viewBox="0 0 120 28" preserveAspectRatio="none" fill="none"><path d={spark} stroke={up ? "#1F9F5F" : "#FF3D7F"} stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            </a>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="stocks-empty"><p>个股行情接口当前返回空列表，保留模块样式并等待后端数据恢复。</p></div>
+    )}
+
+    <div class="stocks-foot">
+      <span>DELAYED 15 MIN · 仅供工位偷瞄 · {marketDisclaimer}</span>
+    </div>
+  </section>
+
+  <!-- FOOTER ROW -->
+  <section class="footer" id="about-me">
+    <div class="colophon">
+      <h5>关于摸鱼热榜</h5>
+      <p>纸短情长，{sourceCount} 处热榜尽收其中。片纸之上，人间冷暖皆有回响。</p>
+      <div class="credits">
+        UPDATED · {nowTime} &nbsp;·&nbsp; {sourceCount} SOURCES &nbsp;·&nbsp; PRINTED ON CREAM #FFF4D6 &nbsp;·&nbsp; v1.0
+      </div>
+    </div>
+
+    <div class="quote">
+      "上班八小时<br/>摸鱼七小时半<br/>剩下半小时<br/>用来想下一次摸鱼。"
+      <span>— 工位哲学家 · 第 {ISSUE_NO} 期</span>
+    </div>
+
+    <div class="stickers-grid">
+      <div class="doodlecard tag1">
+        <h6>🪄 摸鱼小技巧</h6>
+        <p>把屏幕分两半，左边 IDE 假装在写代码，右边热榜——只要 Alt+Tab 够快，老板永远在你的盲区。</p>
+      </div>
+      <div class="doodlecard tag2">
+        <h6>⚠️ 免责声明</h6>
+        <p>本站仅聚合公开榜单标题与原站链接，点击后跳转至原网站。内容仅供摸鱼参考，不构成投资建议，不构成请假理由。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOAST -->
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <!-- EXPAND MODAL -->
+  <div class="modal-backdrop" id="expand-modal" role="dialog" aria-modal="true" aria-label="热搜详情">
+    <div class="modal-card" id="expand-modal-card">
+      <button class="modal-close" id="expand-modal-close" aria-label="关闭">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M2 2l12 12M14 2L2 14"/>
+        </svg>
+      </button>
+      <div class="modal-head" id="expand-modal-head"></div>
+      <div class="modal-meta" id="expand-modal-meta"></div>
+      <ol class="modal-list" id="expand-modal-list"></ol>
+      <div class="modal-foot" id="expand-modal-foot"></div>
+    </div>
+  </div>
+
+  <!-- OFFWORK SETTINGS MODAL -->
+  <div class="offwork-modal-backdrop" id="offwork-modal" role="dialog" aria-modal="true" aria-labelledby="offwork-modal-title">
+    <form class="offwork-modal-card" id="offwork-form">
+      <button class="offwork-modal-close" id="offwork-modal-close" type="button" aria-label="关闭">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M2 2l12 12M14 2L2 14"/>
+        </svg>
+      </button>
+      <div class="offwork-modal-stamp">CLOCK</div>
+      <h3 id="offwork-modal-title">自定义下班时间</h3>
+      <label class="offwork-time-field" for="offwork-time-input">
+        <span>下班时间</span>
+        <input id="offwork-time-input" name="offworkTime" type="time" value="18:00" required />
+      </label>
+      <div class="offwork-modal-actions">
+        <button class="offwork-modal-submit" type="submit">保存</button>
+        <button class="offwork-modal-reset" id="offwork-time-reset" type="button">恢复 18:00</button>
+      </div>
+    </form>
+  </div>
+
+  <SiteFooter />
+
+  <!-- BACK TO TOP -->
+  <button id="back-to-top" aria-label="返回顶部" title="返回顶部">
+    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 13V3M3 8l5-5 5 5"/>
+    </svg>
+    <span>TOP</span>
+  </button>
+</main>
+</BaseLayout>
+
+<style is:global>
+:root{
+    --paper:#FFF4D6;
+    --paper-deep:#FFE9A8;
+    --ink:#1A1714;
+    --pink:#FF3D7F;
+    --pink-soft:#FFD6E2;
+    --blue:#2540D9;
+    --blue-soft:#CFD8FF;
+    --yellow:#FFC93C;
+    --green:#1F9F5F;
+    --green-soft:#C8F3D9;
+    --orange:#FF6B2C;
+    --lilac:#B080FF;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:"Space Mono","Helvetica Neue",sans-serif;}
+
+  /* paper grain */
+  body{
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(255,61,127,.10) 0, transparent 38%),
+      radial-gradient(circle at 82% 8%,  rgba(37,64,217,.10) 0, transparent 40%),
+      radial-gradient(circle at 92% 88%, rgba(255,201,60,.18) 0, transparent 45%),
+      radial-gradient(circle at 8% 92%,  rgba(31,159,95,.10) 0, transparent 40%);
+    background-color:var(--paper);
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.09 0 0 0 0 0.08 0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/></svg>");
+    mix-blend-mode:multiply;opacity:.55;
+  }
+  /* halftone overlay */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(circle at center, var(--ink) 0.6px, transparent 1.1px);
+    background-size:7px 7px;opacity:.05;
+  }
+
+  .wrap{max-width:1380px;margin:0 auto;padding:28px 36px 80px;position:relative;z-index:2;}
+
+  /* --- masthead --- */
+  .mast{
+    margin-top:32px;display:grid;grid-template-columns:1.55fr .9fr;gap:28px;align-items:end;
+    position:relative;
+  }
+  .title{
+    font-family:"Ma Shan Zheng",cursive;
+    font-size:clamp(86px,11.5vw,170px);line-height:.86;
+    letter-spacing:-.02em;color:var(--ink);
+    position:relative;
+  }
+  .title .row1{display:block;}
+  .title .row2{display:block;color:var(--pink);transform:translateX(38px);}
+  .title em{
+    font-style:normal;
+    background:var(--yellow);
+    border:2.5px solid var(--ink);
+    display:inline-block;padding:0 10px 6px;border-radius:14px;
+    box-shadow:6px 6px 0 var(--ink);transform:rotate(-2deg);
+  }
+  .title svg.squiggle{position:absolute;left:-6px;bottom:-22px;width:340px;height:34px;}
+
+  .lede{
+    font-family:"Fraunces",serif;font-style:italic;font-size:18px;line-height:1.55;
+    color:#2c2723;max-width:46ch;margin-top:46px;
+    border-left:4px solid var(--blue);padding:6px 0 6px 14px;
+  }
+  .lede b{font-style:normal;background:var(--blue-soft);padding:0 4px;}
+
+  /* fish doodle column */
+  .figureCard{
+    position:relative;border:2.5px solid var(--ink);background:var(--paper-deep);
+    border-radius:18px;padding:16px;box-shadow:6px 6px 0 var(--ink);
+    transform:rotate(2deg);min-height:260px;display:flex;flex-direction:column;gap:10px;
+    overflow:hidden;
+  }
+  .figureCard .tape{
+    position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(-3deg);
+    width:120px;height:22px;background:rgba(255,255,255,.65);
+    border:1.5px solid rgba(0,0,0,.25);
+    background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.05) 0 6px, transparent 6px 12px);
+  }
+  .figureCard h4{font-family:"Bagel Fat One",sans-serif;font-size:22px;letter-spacing:.02em;}
+  .figureCard p{font-size:12.5px;line-height:1.6;color:#2a2520;}
+  .figureCard svg.fish{width:100%;height:130px;margin-top:auto;}
+  .figureCard .alm-date{
+    font-family:"Space Mono",monospace;font-size:13px;line-height:1.5;letter-spacing:.02em;
+    color:#3a332b;background:rgba(255,255,255,.55);
+    border:1.5px dashed var(--ink);border-radius:8px;padding:7px 10px;
+  }
+  .figureCard .alm-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  }
+  .figureCard .alm-col{
+    border:2px solid var(--ink);border-radius:10px;padding:8px 10px 9px;
+    background:var(--paper);position:relative;box-shadow:3px 3px 0 var(--ink);
+  }
+  .figureCard .alm-do{background:#C8F3D9;}
+  .figureCard .alm-dont{background:#FFD6E2;}
+  .figureCard .alm-label{
+    font-family:"Bagel Fat One",sans-serif;font-size:13px;line-height:1;
+    background:var(--ink);color:var(--paper);padding:2px 8px 3px;border-radius:5px;
+    display:inline-block;margin-bottom:4px;
+  }
+  .figureCard .alm-col ul{
+    list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;
+  }
+  .figureCard .alm-col li{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:13px;line-height:1.5;color:#1a1714;
+  }
+  .figureCard .alm-col li::before{content:"·";margin-right:4px;color:#5a5147;}
+  .figureCard .alm-meta{
+    margin:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;
+    font-family:"Space Mono",monospace;font-size:10.5px;letter-spacing:.04em;
+  }
+  .figureCard .alm-meta > div{display:flex;gap:6px;align-items:baseline;}
+  .figureCard .alm-meta dt{color:#5a5147;letter-spacing:.12em;text-transform:uppercase;font-size:9.5px;}
+  .figureCard .alm-meta dd{margin:0;color:var(--ink);font-weight:700;}
+  .figureCard .badge{
+    position:absolute;right:-10px;top:14px;background:var(--pink);color:#fff;border:2.5px solid var(--ink);
+    padding:6px 10px;border-radius:8px;transform:rotate(8deg);font-family:"Bagel Fat One",sans-serif;font-size:13px;
+    box-shadow:3px 3px 0 var(--ink);
+  }
+
+  /* --- info strip (tickers) --- */
+  .tickers{
+    margin-top:34px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  }
+  .ticker{
+    border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);
+    padding:14px 16px;box-shadow:5px 5px 0 var(--ink);position:relative;overflow:hidden;
+  }
+  .ticker:nth-child(1){background:var(--green-soft);}
+  .ticker:nth-child(2){background:var(--blue-soft);}
+  .ticker:nth-child(3){background:var(--pink-soft);}
+  .ticker:nth-child(4){background:#FFE6BD;}
+  .ticker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;z-index:1;}
+  .ticker .lab{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#4a423a}
+  .ticker .num{font-family:"Bagel Fat One",sans-serif;font-size:36px;line-height:1.05;margin-top:6px;}
+  .ticker .num small{font-size:14px;font-family:"Space Mono";color:#5a5147;margin-left:4px;}
+  .ticker .delta{font-size:10px;margin-top:8px;letter-spacing:.1em;text-transform:uppercase;font-family:"Space Mono",monospace;display:inline-flex;align-items:center;gap:5px;padding:2px 9px 3px;border-radius:999px;border:1.5px solid currentColor;width:fit-content;}
+  .ticker:nth-child(1) .delta{color:var(--green);}
+  .ticker:nth-child(2) .delta{color:var(--blue);}
+  .ticker:nth-child(3) .delta{color:var(--pink);}
+  .ticker:nth-child(4) .delta{color:var(--orange);}
+  .ticker .delta.down{color:var(--pink);}
+  .ticker > svg{position:absolute;right:-6px;bottom:-8px;width:90px;opacity:.85}
+  .offwork-settings-btn{
+    width:30px;height:30px;border:2px solid var(--ink);border-radius:10px;
+    background:var(--yellow);color:var(--ink);box-shadow:3px 3px 0 var(--ink);
+    display:grid;place-items:center;cursor:pointer;transform:rotate(5deg);
+    transition:transform .18s cubic-bezier(.2,.7,.2,1),box-shadow .18s,background .18s;
+  }
+  .offwork-settings-btn:hover{background:var(--pink-soft);transform:rotate(-4deg) translateY(-2px);box-shadow:5px 5px 0 var(--ink);}
+  .offwork-settings-btn:active{transform:rotate(3deg) translateY(1px);box-shadow:2px 2px 0 var(--ink);}
+  .offwork-settings-btn svg{position:static;width:15px;opacity:1;}
+
+  /* --- BOARDS GRID --- */
+  .boards{
+    margin-top:38px;
+    display:grid;grid-template-columns:repeat(12,1fr);gap:20px;
+  }
+
+  .board{
+    border:2.5px solid var(--ink);background:var(--paper);
+    border-radius:18px;padding:16px 18px 14px;
+    box-shadow:6px 6px 0 var(--ink);
+    position:relative;display:flex;flex-direction:column;gap:10px;
+    transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s cubic-bezier(.2,.7,.2,1);
+    will-change:transform;
+  }
+  .board:hover{transform:translate(-2px,-3px);box-shadow:8px 9px 0 var(--ink);}
+
+  .b-weibo    {grid-column:span 4;background:#FFE6E1;}
+  .b-douyin   {grid-column:span 4;background:#1A1714;color:#FFF8E7;}
+  .b-zhihu    {grid-column:span 4;background:#E5EBFF;}
+  .b-bili     {grid-column:span 4;background:#E2F5FF;}
+  .b-baidu    {grid-column:span 4;background:#CFD8FF;}
+  .b-toutiao  {grid-column:span 4;background:#FFE9A8;}
+  .b-kuaishou {grid-column:span 4;background:#FFD6E2;}
+  .b-hupu     {grid-column:span 4;background:#FFD9C2;}
+  .b-douban   {grid-column:span 4;background:#F1E2FF;}
+  .b-thepaper {grid-column:span 4;background:#1A1714;color:#FFF8E7;}
+  .b-tieba    {grid-column:span 4;background:#E6F7E0;}
+  .b-36kr     {grid-column:span 4;background:#FFE9A8;}
+  .b-juejin   {grid-column:span 4;background:#CFD8FF;}
+  .b-github   {grid-column:span 4;background:#FFF1C2;}
+  .b-ithome   {grid-column:span 4;background:#CFD8FF;}
+  .b-wsj      {grid-column:span 4;background:#C8F3D9;}
+  .b-cls      {grid-column:span 4;background:#FFE9A8;}
+  .b-jin10    {grid-column:span 4;background:#FFD9C2;}
+  .b-v2ex     {grid-column:span 4;background:#FFE9A8;}
+  .b-linux-do {grid-column:span 4;background:#FFF1C2;}
+  .b-ifeng    {grid-column:span 4;background:#FFD6E2;}
+  .b-tencent  {grid-column:span 4;background:#CFD8FF;}
+  .b-sspai    {grid-column:span 4;background:#FFD6E2;}
+  .b-coolapk  {grid-column:span 4;background:#C8F3D9;}
+  .b-gelonghui{grid-column:span 4;background:#C8F3D9;}
+  .b-xueqiu   {grid-column:span 4;background:#FFE9A8;}
+  .b-nowcoder {grid-column:span 4;background:#C8F3D9;}
+
+  /* 深色卡片通用 */
+  .b-douyin .b-list a,.b-thepaper .b-list a{color:#FFF8E7;}
+  .b-douyin .b-list a:hover,.b-thepaper .b-list a:hover{background:rgba(255,255,255,.08)}
+  .b-douyin .b-list .heat,.b-thepaper .b-list .heat{color:#bdb6a8}
+  .b-douyin .b-list .ttl,.b-thepaper .b-list .ttl{color:#FFF8E7;}
+  .b-douyin .b-tag{background:var(--pink);}
+  .b-thepaper .b-tag{background:var(--blue);}
+
+  /* icon 颜色 */
+  .b-weibo    .b-icon{background:var(--pink);color:#fff;}
+  .b-douyin   .b-icon{background:var(--paper);color:var(--ink);border-color:var(--paper);}
+  .b-kuaishou .b-icon{background:var(--pink);color:#fff;}
+  .b-bili     .b-icon{background:#FF7BAC;color:#fff;}
+  .b-douban   .b-icon{background:var(--lilac);color:#fff;}
+  .b-hupu     .b-icon{background:var(--orange);color:#fff;}
+  .b-toutiao  .b-icon{background:var(--orange);color:#fff;}
+  .b-baidu    .b-icon{background:var(--blue);color:#fff;}
+  .b-thepaper .b-icon{background:var(--paper);color:var(--ink);border-color:var(--paper);}
+  .b-ifeng    .b-icon{background:var(--pink);color:#fff;}
+  .b-tencent  .b-icon{background:var(--blue);color:#fff;}
+  .b-wsj      .b-icon{background:var(--green);color:#fff;}
+  .b-cls      .b-icon{background:var(--yellow);color:var(--ink);}
+  .b-jin10    .b-icon{background:var(--orange);color:#fff;}
+  .b-gelonghui.b-icon{background:var(--green);color:#fff;}
+  .b-xueqiu   .b-icon{background:var(--ink);color:var(--paper);}
+  .b-github   .b-icon{background:var(--ink);color:var(--paper);}
+  .b-juejin   .b-icon{background:var(--blue);color:#fff;}
+  .b-sspai    .b-icon{background:var(--pink);color:#fff;}
+  .b-ithome   .b-icon{background:var(--blue);color:#fff;}
+  .b-coolapk  .b-icon{background:var(--green);color:#fff;}
+  .b-nowcoder .b-icon{background:var(--green);color:#fff;}
+  .b-zhihu    .b-icon{background:var(--blue);color:#fff;}
+  .b-tieba    .b-icon{background:var(--green);color:#fff;}
+  .b-36kr     .b-icon{background:var(--ink);color:var(--paper);}
+  .b-v2ex     .b-icon{background:var(--ink);color:var(--paper);}
+  .b-linux-do .b-icon{background:var(--yellow);color:var(--ink);}
+
+  .b-head{display:flex;align-items:center;gap:10px;}
+  .b-icon{
+    width:40px;height:40px;border-radius:12px;border:2px solid var(--ink);
+    display:grid;place-items:center;font-family:"Bagel Fat One",sans-serif;font-size:18px;
+    box-shadow:3px 3px 0 var(--ink);flex-shrink:0;
+  }
+  .b-name{font-family:"ZCOOL KuaiLe",sans-serif;font-size:22px;line-height:1;}
+  .b-sub{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:inherit;opacity:.7}
+  .b-tag{
+    margin-left:auto;font-family:"Bagel Fat One",sans-serif;font-size:12px;
+    background:var(--ink);color:var(--paper);padding:3px 9px 4px;border-radius:999px;
+    transform:rotate(2deg);flex-shrink:0;
+  }
+  .b-actions{margin-left:auto;display:flex;gap:6px;flex-shrink:0;}
+  .b-btn{
+    width:28px;height:28px;border:2px solid currentColor;background:transparent;
+    color:inherit;border-radius:8px;display:grid;place-items:center;cursor:pointer;
+    transition:transform .15s,background .15s;
+  }
+  .b-btn:hover{background:rgba(0,0,0,.08);transform:translateY(-1px) rotate(-2deg);}
+  .b-btn:active{transform:translateY(0);}
+  .b-btn.is-loading{animation:spin 1s linear infinite;}
+  .b-douyin .b-btn:hover,.b-thepaper .b-btn:hover{background:rgba(255,255,255,.14);}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* toast */
+  .toast-stack{
+    position:fixed;top:24px;left:50%;transform:translateX(-50%);
+    z-index:100;display:flex;flex-direction:column;gap:8px;pointer-events:none;
+  }
+  .toast{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:14px;
+    background:var(--ink);color:var(--paper);
+    border:2.5px solid var(--ink);border-radius:10px;
+    padding:8px 16px;box-shadow:4px 4px 0 var(--pink);
+    transform:translateY(-12px) rotate(-1.2deg);opacity:0;
+    transition:transform .25s cubic-bezier(.2,.7,.2,1),opacity .25s;
+  }
+  .toast.show{transform:translateY(0) rotate(-1.2deg);opacity:1;}
+  .toast.ok{box-shadow:4px 4px 0 var(--green);}
+  .toast.err{box-shadow:4px 4px 0 var(--pink);}
+
+  .b-meta{font-size:11.5px;letter-spacing:.06em;color:inherit;opacity:.7;margin-top:-3px;}
+
+  .b-list{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:4px;max-height:340px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ink) transparent;}
+  .b-list::-webkit-scrollbar{width:6px;}
+  .b-list::-webkit-scrollbar-track{background:transparent;}
+  .b-list::-webkit-scrollbar-thumb{background:var(--ink);border-radius:999px;}
+  .b-list a{
+    display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;
+    text-decoration:none;color:inherit;padding:6px 6px;border-radius:8px;line-height:1.3;
+    transition:background .12s;
+  }
+  .b-list a:hover{background:rgba(0,0,0,.06);}
+  .b-list .rk{font-family:"Bagel Fat One",sans-serif;font-size:18px;color:#9a8e7e;text-align:center;}
+  .b-list .top1 .rk{color:var(--pink);}
+  .b-list .top2 .rk{color:var(--orange);}
+  .b-list .top3 .rk{color:var(--blue);}
+  .b-list .ttl{font-size:13.5px;font-weight:400;color:inherit;letter-spacing:.005em;}
+  .b-list .ttl b{font-weight:700;border-bottom:2px solid currentColor;}
+  .b-list .heat{font-family:"Space Mono",monospace;font-size:11px;color:#6b6358;white-space:nowrap;}
+  .b-list .pill{
+    display:inline-block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+    border:1.5px solid currentColor;border-radius:999px;padding:0 6px;margin-left:6px;
+    vertical-align:1px;font-family:"Space Mono",monospace;
+  }
+  .pill.hot{color:var(--pink)}
+  .pill.new{color:var(--blue)}
+  .pill.boom{color:var(--orange)}
+  .pill.brk{color:var(--green)}
+
+  .b-foot{display:flex;align-items:center;margin-top:6px;padding-top:8px;border-top:1.5px dashed currentColor;font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;}
+
+  /* corner sticker */
+  .sticker{
+    position:absolute;font-family:"Bagel Fat One",sans-serif;font-size:11px;letter-spacing:.05em;
+    border:2px solid var(--ink);padding:2px 7px 3px;border-radius:6px;
+    box-shadow:2px 2px 0 var(--ink);
+  }
+
+  /* 宽屏模式 */
+  .wrap.wide{max-width:1800px;}
+  .wrap.wide .boards{grid-template-columns:repeat(16,1fr);}
+  .wrap.wide .b-weibo,.wrap.wide .b-douyin,.wrap.wide .b-kuaishou,
+  .wrap.wide .b-bili,.wrap.wide .b-douban,.wrap.wide .b-hupu{grid-column:span 4;}
+  .wrap.wide .b-toutiao,.wrap.wide .b-baidu,.wrap.wide .b-thepaper{grid-column:span 4;}
+  .wrap.wide .b-ifeng,.wrap.wide .b-tencent{grid-column:span 4;}
+  .wrap.wide .b-wsj,.wrap.wide .b-cls,.wrap.wide .b-jin10{grid-column:span 4;}
+  .wrap.wide .b-gelonghui,.wrap.wide .b-xueqiu{grid-column:span 4;}
+  .wrap.wide .b-github,.wrap.wide .b-hn,.wrap.wide .b-ph,.wrap.wide .b-juejin{grid-column:span 4;}
+  .wrap.wide .b-sspai,.wrap.wide .b-ithome,.wrap.wide .b-coolapk,.wrap.wide .b-nowcoder{grid-column:span 4;}
+  .wrap.wide .b-freebuf{grid-column:span 4;}
+  .wrap.wide .b-zhihu,.wrap.wide .b-tieba,.wrap.wide .b-36kr,.wrap.wide .b-v2ex,.wrap.wide .b-linux-do{grid-column:span 4;}
+
+  /* --- footer / random --- */
+  .footer{
+    margin-top:60px;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:22px;align-items:start;
+  }
+  .colophon{
+    border:2.5px solid var(--ink);background:var(--paper);border-radius:18px;padding:18px 20px;
+    box-shadow:6px 6px 0 var(--ink);
+  }
+  .colophon h5{font-family:"Bagel Fat One",sans-serif;font-size:22px;letter-spacing:.02em;}
+  .colophon p{font-family:"Fraunces",serif;font-size:14px;line-height:1.6;margin-top:6px;color:#2a2520;}
+  .colophon .credits{margin-top:10px;font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#665d52;}
+  .quote{
+    font-family:"Ma Shan Zheng",cursive;font-size:34px;line-height:1.1;
+    background:var(--ink);color:var(--paper);border-radius:18px;padding:22px;
+    border:2.5px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+    transform:rotate(-1.2deg);position:relative;
+  }
+  .quote span{display:block;margin-top:12px;font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--yellow);}
+  .quote::before{content:"";position:absolute;width:120px;height:120px;left:-30px;top:-30px;
+    background:radial-gradient(circle,var(--yellow) 0,var(--yellow) 50%,transparent 51%);
+    border-radius:50%;z-index:-1;}
+
+  .stickers-grid{display:flex;flex-direction:column;gap:14px;}
+  .doodlecard{
+    border:2.5px solid var(--ink);background:var(--paper);border-radius:14px;padding:14px;
+    box-shadow:5px 5px 0 var(--ink);position:relative;
+  }
+  .doodlecard h6{font-family:"ZCOOL KuaiLe";font-size:16px;margin-bottom:6px;}
+  .doodlecard p{font-size:12px;line-height:1.5;color:#3a332b}
+  .doodlecard.tag1{transform:rotate(1.5deg);background:var(--blue-soft);}
+  .doodlecard.tag2{transform:rotate(-1.6deg);background:var(--pink-soft);}
+
+  /* --- US STOCKS WIDGET (盘中偷瞄) --- */
+  .stocks{
+    margin-top:42px;
+    border:2.5px solid var(--ink);border-radius:20px;
+    background:var(--paper);
+    box-shadow:7px 7px 0 var(--ink);
+    padding:22px 22px 24px;
+    position:relative;
+  }
+  .stocks::before{
+    /* 半色调贴边 */
+    content:"";position:absolute;left:14px;right:14px;top:14px;bottom:14px;
+    border:1.5px dashed rgba(26,23,20,.22);border-radius:14px;pointer-events:none;
+  }
+  .stocks-head{
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;
+    padding-bottom:14px;border-bottom:2.5px solid var(--ink);
+    position:relative;
+  }
+  .stocks-stamp{
+    font-family:"Bagel Fat One",sans-serif;font-size:14px;letter-spacing:.04em;
+    background:var(--ink);color:var(--paper);
+    padding:5px 12px 6px;border-radius:8px;border:2px solid var(--ink);
+    transform:rotate(-3deg);
+    box-shadow:3px 3px 0 var(--yellow);
+  }
+  .stocks-title h3{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:26px;line-height:1;
+  }
+  .stocks-title h3 em{
+    font-style:normal;font-family:"Bagel Fat One",sans-serif;font-size:18px;
+    background:var(--yellow);border:2px solid var(--ink);border-radius:6px;
+    padding:1px 8px 2px;margin-left:8px;display:inline-block;transform:translateY(-3px) rotate(-2deg);
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .stocks-title p{
+    font-family:"Fraunces",serif;font-style:italic;font-size:13px;color:#3a332b;margin-top:4px;
+  }
+  .stocks-title .trade-date{
+    font-family:"Bagel Fat One",sans-serif;font-style:normal;font-size:11px;letter-spacing:.1em;
+    background:var(--ink);color:var(--paper);padding:1px 7px 2px;border-radius:4px;
+    margin-right:6px;vertical-align:1px;
+  }
+  .stocks-status{
+    display:flex;align-items:center;gap:10px;
+    font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:#3a332b;
+    border:2px solid var(--ink);border-radius:999px;padding:6px 12px;background:var(--green-soft);
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .stocks-status .dot{
+    width:9px;height:9px;border-radius:50%;background:var(--green);
+    border:1.5px solid var(--ink);box-shadow:0 0 0 3px rgba(31,159,95,.25);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  .stocks-status b{color:var(--ink);letter-spacing:.22em;}
+
+  /* 三大指数 */
+  .stocks-indices{
+    margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  }
+  .idx-link{text-decoration:none;color:inherit;transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s cubic-bezier(.2,.7,.2,1);}
+  .idx-link:hover{transform:translate(-2px,-3px);box-shadow:8px 9px 0 var(--ink);}
+  .idx{
+    border:2.5px solid var(--ink);border-radius:14px;padding:14px 16px 12px;
+    box-shadow:5px 5px 0 var(--ink);
+    position:relative;display:flex;flex-direction:column;gap:6px;overflow:hidden;
+    background:var(--paper);
+  }
+  .idx-dow{background:#E5EBFF;}
+  .idx-snp{background:#C8F3D9;}
+  .idx-nas{background:#FFE6E1;}
+  .idx .sticker-tag{
+    position:absolute;right:-8px;top:10px;
+    font-family:"Bagel Fat One",sans-serif;font-size:11px;letter-spacing:.06em;
+    background:var(--ink);color:var(--paper);
+    border:2px solid var(--ink);padding:2px 8px 3px;border-radius:6px;
+    transform:rotate(6deg);box-shadow:2px 2px 0 var(--yellow);
+  }
+  .idx-name{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:18px;line-height:1;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .idx-name em{
+    font-style:normal;font-family:"Space Mono",monospace;font-size:9.5px;
+    letter-spacing:.22em;text-transform:uppercase;color:#5a5147;
+  }
+  .idx-val{
+    font-family:"Bagel Fat One",sans-serif;font-size:36px;line-height:1.05;
+    letter-spacing:-.01em;color:var(--ink);
+    font-feature-settings:"tnum";
+  }
+  .idx-val small{font-size:18px;color:#3a332b;margin-left:1px;}
+  .idx-delta{
+    font-family:"Space Mono",monospace;font-size:12.5px;letter-spacing:.04em;
+    display:inline-flex;align-items:center;gap:8px;width:fit-content;
+    border:2px solid currentColor;border-radius:999px;padding:2px 10px 3px;
+  }
+  .idx-delta.up{color:var(--green);background:rgba(31,159,95,.12);}
+  .idx-delta.down{color:var(--pink);background:rgba(255,61,127,.10);}
+  .idx-spark{width:100%;height:54px;margin-top:2px;}
+  .idx-foot{
+    margin-top:auto;padding-top:8px;border-top:1.5px dashed rgba(26,23,20,.35);
+    font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:#5a5147;
+    display:flex;justify-content:space-between;
+  }
+
+  /* 热门个股 */
+  .stocks-list-head{
+    margin-top:22px;display:flex;align-items:center;gap:14px;
+  }
+  .stocks-list-head h4{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:20px;line-height:1;
+  }
+  .stocks-list-head h4 em{
+    font-style:normal;font-family:"Space Mono",monospace;font-size:10px;
+    letter-spacing:.24em;text-transform:uppercase;color:#5a5147;margin-left:8px;
+  }
+  .stocks-list-head .rule{
+    flex:1;height:0;border-top:2px dashed rgba(26,23,20,.35);
+  }
+  .stocks-list-head .legend{
+    font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:#5a5147;
+  }
+  .stocks-list-head .legend b.u{color:var(--green)}
+  .stocks-list-head .legend b.d{color:var(--pink)}
+  .stocks-list{
+    margin-top:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;
+  }
+  .stk{
+    text-decoration:none;color:var(--ink);
+    border:2px solid var(--ink);border-radius:12px;padding:10px 12px 8px;
+    background:var(--paper);box-shadow:4px 4px 0 var(--ink);
+    display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;
+    transition:.18s cubic-bezier(.2,.7,.2,1);
+  }
+  .stk:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink);}
+  .stk.up{background:#EAF7EE;}
+  .stk.down{background:#FFEDE7;}
+  .stk-row1{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+  .stk .tic{
+    font-family:"Bagel Fat One",sans-serif;font-size:18px;letter-spacing:.02em;
+  }
+  .stk .cn{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:12px;color:#3a332b;
+  }
+  .stk-row2{display:flex;align-items:baseline;justify-content:space-between;gap:6px;}
+  .stk .px{
+    font-family:"Space Mono",monospace;font-weight:700;font-size:14px;
+    font-feature-settings:"tnum";
+  }
+  .stk .ch{
+    font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.02em;
+    border:1.5px solid currentColor;border-radius:999px;padding:0 7px 1px;
+  }
+  .stk.up .ch{color:var(--green);}
+  .stk.down .ch{color:var(--pink);}
+  .stk-spark{width:100%;height:28px;margin-top:2px;}
+
+  .stocks-foot{
+    margin-top:14px;display:flex;justify-content:space-between;align-items:center;
+    padding-top:10px;border-top:1.5px dashed rgba(26,23,20,.35);
+    font-family:"Space Mono",monospace;font-size:10.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:#5a5147;
+  }
+  /* keyframes */
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-6px) rotate(2.6deg)}}
+  .figureCard{animation:bob 6s ease-in-out infinite;}
+  @keyframes blink{0%,40%,100%{opacity:1}45%,55%{opacity:.15}}
+  .pill.boom{animation:blink 2s linear infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(31,159,95,.25)}50%{box-shadow:0 0 0 7px rgba(31,159,95,0)}}
+
+  @media (max-width:1100px){
+    .boards,.wrap.wide .boards{grid-template-columns:repeat(2,1fr);}
+    .board{transform:none !important;grid-column:span 2 !important;}
+    .mast{grid-template-columns:1fr;}
+    .title .row2{transform:none;}
+    .figureCard{transform:none;}
+    .tickers{grid-template-columns:repeat(2,1fr);}
+    .footer{grid-template-columns:1fr;}
+    .stocks-head{grid-template-columns:auto 1fr;align-items:start;}
+    .stocks-status{grid-column:1 / -1;justify-self:start;max-width:100%;white-space:normal;overflow-wrap:anywhere;}
+    .stocks-indices{grid-template-columns:1fr;}
+    .stocks-list{grid-template-columns:repeat(2,1fr);}
+    .idx,.idx-dow,.idx-snp,.idx-nas{transform:none;}
+    .wrap{padding:20px 20px 60px;}
+  }
+
+  @media (max-width:640px){
+    .boards,.wrap.wide .boards{grid-template-columns:1fr;}
+    .board{grid-column:span 1 !important;}
+    .tickers{grid-template-columns:1fr;}
+    .stocks-list{grid-template-columns:1fr;}
+    .title{font-size:clamp(66px,19vw,86px);letter-spacing:0;}
+    .title .row2{transform:none;}
+    .title svg.squiggle{width:min(300px,88vw);}
+    .stocks{padding:18px 16px 20px;}
+    .stocks-head{grid-template-columns:1fr;gap:12px;}
+    .stocks-title h3 em{margin-left:0;margin-top:6px;}
+    .wrap{padding:14px 14px 60px;}
+  }
+
+  .idx-empty,
+  .stocks-empty{
+    border:2.5px dashed var(--ink);
+    border-radius:14px;
+    padding:14px 16px;
+    background:var(--paper-deep);
+    font-family:"Space Mono",monospace;
+    font-size:12px;
+  }
+
+  .stocks-empty{margin-top:16px;}
+
+  .stocks-empty p{margin:0;line-height:1.6;}
+
+  /* --- BACK TO TOP --- */
+  #back-to-top{
+    position:fixed;right:28px;bottom:36px;z-index:150;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    width:52px;padding:10px 0 8px;
+    background:var(--yellow);color:var(--ink);
+    border:2.5px solid var(--ink);border-radius:14px;
+    box-shadow:5px 5px 0 var(--ink);
+    cursor:pointer;font-family:"Bagel Fat One",sans-serif;font-size:11px;letter-spacing:.08em;
+    transform:rotate(2deg) translateY(20px);opacity:0;pointer-events:none;
+    transition:transform .25s cubic-bezier(.2,.7,.2,1),opacity .25s,box-shadow .2s;
+  }
+  #back-to-top.visible{transform:rotate(2deg) translateY(0);opacity:1;pointer-events:auto;}
+  #back-to-top:hover{transform:rotate(-1deg) translateY(-3px);box-shadow:8px 8px 0 var(--ink);}
+  #back-to-top:active{transform:rotate(2deg) translateY(0);box-shadow:3px 3px 0 var(--ink);}
+
+  /* --- EXPAND MODAL --- */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;z-index:200;
+    background:rgba(26,23,20,.55);
+    backdrop-filter:none;
+    align-items:center;justify-content:center;padding:24px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal-card{
+    position:relative;width:100%;max-width:820px;max-height:88vh;
+    border:2.5px solid var(--ink);border-radius:20px;
+    background:#fff;box-shadow:10px 10px 0 var(--ink);
+    display:flex;flex-direction:column;overflow:hidden;
+    animation:modal-in .22s cubic-bezier(.2,.7,.2,1);
+  }
+  @keyframes modal-in{from{transform:translateY(18px) rotate(-.8deg);opacity:0}to{transform:none;opacity:1}}
+  .modal-close{
+    position:absolute;top:14px;right:14px;z-index:1;
+    width:32px;height:32px;border:2px solid var(--ink);background:var(--paper);
+    border-radius:8px;display:grid;place-items:center;cursor:pointer;
+    box-shadow:3px 3px 0 var(--ink);transition:transform .15s,background .15s;
+  }
+  .modal-close:hover{background:var(--pink);color:#fff;transform:rotate(8deg);}
+  .modal-head{
+    display:flex;align-items:center;gap:12px;
+    padding:18px 52px 14px 20px;
+    border-bottom:2.5px solid var(--ink);
+    flex-shrink:0;
+  }
+  .modal-head .m-icon{
+    width:48px;height:48px;border-radius:14px;border:2px solid var(--ink);
+    display:grid;place-items:center;font-family:"Bagel Fat One",sans-serif;font-size:22px;
+    box-shadow:3px 3px 0 var(--ink);flex-shrink:0;
+  }
+  .modal-head .m-name{font-family:"ZCOOL KuaiLe",sans-serif;font-size:26px;line-height:1;}
+  .modal-head .m-sub{font-size:11px;letter-spacing:.18em;text-transform:uppercase;opacity:.65;margin-top:2px;}
+  .modal-meta{
+    padding:8px 20px;font-size:11.5px;letter-spacing:.06em;opacity:.7;
+    border-bottom:1.5px dashed rgba(26,23,20,.3);flex-shrink:0;
+  }
+  .modal-list{
+    list-style:none;overflow-y:auto;flex:1;padding:10px 14px 14px;
+    scrollbar-width:thin;scrollbar-color:var(--ink) transparent;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .modal-list::-webkit-scrollbar{width:6px;}
+  .modal-list::-webkit-scrollbar-thumb{background:var(--ink);border-radius:999px;}
+  .modal-list a{
+    display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;
+    text-decoration:none;color:inherit;padding:7px 8px;border-radius:10px;line-height:1.35;
+    transition:background .12s;
+  }
+  .modal-list a:hover{background:rgba(0,0,0,.06);}
+  .modal-list .rk{font-family:"Bagel Fat One",sans-serif;font-size:20px;color:#9a8e7e;text-align:center;}
+  .modal-list .top1 .rk{color:var(--pink);}
+  .modal-list .top2 .rk{color:var(--orange);}
+  .modal-list .top3 .rk{color:var(--blue);}
+  .modal-list .ttl{font-size:14px;font-weight:400;letter-spacing:.005em;}
+  .modal-list .ttl b{font-weight:700;border-bottom:2px solid currentColor;}
+  .modal-list .heat{font-family:"Space Mono",monospace;font-size:11px;color:#6b6358;white-space:nowrap;}
+  .modal-foot{
+    padding:10px 20px;border-top:1.5px dashed rgba(26,23,20,.3);
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.65;flex-shrink:0;
+  }
+
+  /* --- OFFWORK SETTINGS MODAL --- */
+  .offwork-modal-backdrop{
+    display:none;position:fixed;inset:0;z-index:210;
+    background:rgba(26,23,20,.58);
+    align-items:center;justify-content:center;padding:24px;
+  }
+  .offwork-modal-backdrop.open{display:flex;}
+  .offwork-modal-card{
+    position:relative;width:min(390px,100%);
+    border:2.5px solid var(--ink);border-radius:18px;
+    background:var(--paper);box-shadow:10px 10px 0 var(--ink);
+    padding:28px 24px 22px;transform:rotate(-1.5deg);
+    animation:offwork-modal-in .2s cubic-bezier(.2,.7,.2,1);
+  }
+  @keyframes offwork-modal-in{
+    from{transform:translateY(16px) rotate(-4deg);opacity:0}
+    to{transform:rotate(-1.5deg);opacity:1}
+  }
+  .offwork-modal-card::before{
+    content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(3deg);
+    width:112px;height:22px;border:1.5px solid rgba(26,23,20,.28);
+    background:rgba(255,244,214,.72);
+    background-image:repeating-linear-gradient(45deg,rgba(26,23,20,.08) 0 6px, transparent 6px 12px);
+  }
+  .offwork-modal-close{
+    position:absolute;top:12px;right:12px;width:32px;height:32px;
+    border:2px solid var(--ink);border-radius:9px;background:var(--paper-deep);
+    color:var(--ink);box-shadow:3px 3px 0 var(--ink);
+    display:grid;place-items:center;cursor:pointer;transition:transform .15s,background .15s,box-shadow .15s;
+  }
+  .offwork-modal-close:hover{background:var(--pink);color:var(--paper);transform:rotate(8deg);box-shadow:5px 5px 0 var(--ink);}
+  .offwork-modal-stamp{
+    display:inline-flex;align-items:center;justify-content:center;
+    border:2px solid var(--ink);border-radius:999px;background:var(--pink-soft);
+    padding:3px 10px 4px;box-shadow:3px 3px 0 var(--ink);
+    font-family:"Bagel Fat One",sans-serif;font-size:12px;letter-spacing:.1em;
+    transform:rotate(4deg);
+  }
+  .offwork-modal-card h3{
+    margin:14px 40px 18px 0;font-family:"ZCOOL KuaiLe",sans-serif;
+    font-size:30px;line-height:1.05;color:var(--ink);
+  }
+  .offwork-time-field{
+    display:grid;gap:8px;font-family:"Space Mono",monospace;
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  }
+  .offwork-time-field input{
+    width:100%;min-height:52px;border:2.5px solid var(--ink);border-radius:14px;
+    background:var(--paper-deep);color:var(--ink);box-shadow:4px 4px 0 var(--ink);
+    padding:8px 12px;font-family:"Bagel Fat One",sans-serif;font-size:28px;
+  }
+  .offwork-time-field input:focus{outline:3px solid var(--yellow);outline-offset:3px;}
+  .offwork-modal-actions{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:20px;
+  }
+  .offwork-modal-actions button{
+    border:2px solid var(--ink);border-radius:999px;color:var(--ink);
+    box-shadow:4px 4px 0 var(--ink);cursor:pointer;font-family:"ZCOOL KuaiLe",sans-serif;
+    font-size:16px;line-height:1;padding:10px 14px 11px;
+    transition:transform .15s,box-shadow .15s,background .15s;
+  }
+  .offwork-modal-actions button:hover{transform:translateY(-2px) rotate(-2deg);box-shadow:6px 6px 0 var(--ink);}
+  .offwork-modal-submit{background:var(--yellow);}
+  .offwork-modal-reset{background:var(--blue-soft);}
+
+</style>
+
+<script>
+  import { getOffWorkStatus } from "../lib/offwork";
+  import type { OffWorkTime } from "../lib/offwork";
+
+  const OFFWORK_STORAGE_KEY = 'moyu-bold-offwork-time';
+  const DEFAULT_OFFWORK_TIME: OffWorkTime = { hour: 18, minute: 0 };
+
+  const countdownNode = document.getElementById('offwork-countdown') as HTMLElement | null;
+  const offworkLabelNode = document.getElementById('offwork-label') as HTMLElement | null;
+  const offworkSettingsOpen = document.getElementById('offwork-settings-open') as HTMLButtonElement | null;
+  const offworkModal = document.getElementById('offwork-modal') as HTMLElement | null;
+  const offworkModalClose = document.getElementById('offwork-modal-close') as HTMLButtonElement | null;
+  const offworkForm = document.getElementById('offwork-form') as HTMLFormElement | null;
+  const offworkTimeInput = document.getElementById('offwork-time-input') as HTMLInputElement | null;
+  const offworkTimeReset = document.getElementById('offwork-time-reset') as HTMLButtonElement | null;
+
+  function padTimePart(n: number): string {
+    return String(n).padStart(2, '0');
+  }
+
+  function formatOffWorkTime(time: OffWorkTime): string {
+    return `${padTimePart(time.hour)}:${padTimePart(time.minute)}`;
+  }
+
+  function parseOffWorkTime(value: string | null): OffWorkTime | null {
+    const match = value?.match(/^(\d{2}):(\d{2})$/);
+    if (!match) return null;
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return { hour, minute };
+  }
+
+  function readStoredOffWorkTime(): OffWorkTime {
+    try {
+      return parseOffWorkTime(localStorage.getItem(OFFWORK_STORAGE_KEY)) ?? DEFAULT_OFFWORK_TIME;
+    } catch {
+      return DEFAULT_OFFWORK_TIME;
+    }
+  }
+
+  function saveOffWorkTime(time: OffWorkTime): void {
+    try {
+      localStorage.setItem(OFFWORK_STORAGE_KEY, formatOffWorkTime(time));
+    } catch {
+      // localStorage 不可用时仅在本次页面生命周期生效。
+    }
+  }
+
+  function readCalendar() {
+    try {
+      return JSON.parse(countdownNode?.dataset.calendar ?? '{"isRestDay":false,"kind":"workday"}');
+    } catch {
+      return { isRestDay: false, kind: 'workday' };
+    }
+  }
+
+  let currentOffWorkTime = readStoredOffWorkTime();
+
+  if (offworkTimeInput) {
+    offworkTimeInput.value = formatOffWorkTime(currentOffWorkTime);
+  }
+
+  function tickOffworkCountdown() {
+    if (!countdownNode) return;
+    const calendar = readCalendar();
+    const status = getOffWorkStatus(new Date(), calendar, currentOffWorkTime);
+    countdownNode.textContent = status.closed
+      ? (status.reason === 'after-hours' ? '下班了，好好休息 ♡' : '今天不上班 ♡')
+      : (status.countdown ?? '--:--:--');
+    if (offworkLabelNode && !calendar.isRestDay) {
+      offworkLabelNode.textContent = `${formatOffWorkTime(currentOffWorkTime)} 下班`;
+    }
+  }
+
+  tickOffworkCountdown();
+  setInterval(tickOffworkCountdown, 1000);
+
+  function openOffworkModal() {
+    if (!offworkModal || !offworkTimeInput) return;
+    offworkTimeInput.value = formatOffWorkTime(currentOffWorkTime);
+    offworkModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    window.setTimeout(() => offworkTimeInput.focus(), 0);
+  }
+
+  function closeOffworkModal() {
+    if (!offworkModal) return;
+    offworkModal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  offworkSettingsOpen?.addEventListener('click', openOffworkModal);
+  offworkModalClose?.addEventListener('click', closeOffworkModal);
+  offworkModal?.addEventListener('click', (ev) => {
+    if (ev.target === offworkModal) closeOffworkModal();
+  });
+  offworkForm?.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const nextTime = parseOffWorkTime(offworkTimeInput?.value ?? null);
+    if (!nextTime) {
+      showToast('时间格式不对', 'err');
+      return;
+    }
+    currentOffWorkTime = nextTime;
+    saveOffWorkTime(nextTime);
+    tickOffworkCountdown();
+    closeOffworkModal();
+    showToast(`下班时间已设为 ${formatOffWorkTime(nextTime)}`, 'ok');
+  });
+  offworkTimeReset?.addEventListener('click', () => {
+    currentOffWorkTime = DEFAULT_OFFWORK_TIME;
+    saveOffWorkTime(DEFAULT_OFFWORK_TIME);
+    if (offworkTimeInput) {
+      offworkTimeInput.value = formatOffWorkTime(DEFAULT_OFFWORK_TIME);
+    }
+    tickOffworkCountdown();
+    showToast('已恢复 18:00', 'ok');
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && offworkModal?.classList.contains('open')) closeOffworkModal();
+  });
+
+  // ---- toast ----
+  const toastStack = document.getElementById('toast-stack');
+  function showToast(msg: string, kind: 'ok' | 'err' = 'ok') {
+    if (!toastStack) return;
+    const el = document.createElement('div');
+    el.className = `toast ${kind}`;
+    el.textContent = msg;
+    toastStack.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => el.remove(), 260);
+    }, 1800);
+  }
+
+  // ---- board refresh ----
+  const API_BASE = import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : '/api';
+
+  type TrendItem = { platform: string; platformName: string; title: string; url: string; rank: number; heat: string; updatedAt: string };
+
+  function escapeHtml(s: string): string {
+    return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+  }
+
+  function formatHeatJs(heat: string | undefined, rank: number): string {
+    return heat && heat.trim().length > 0 ? heat : `TOP ${rank}`;
+  }
+
+  function renderListItems(items: TrendItem[]): string {
+    return items.map((item, idx) => {
+      const cls = idx === 0 ? 'top1' : idx === 1 ? 'top2' : idx === 2 ? 'top3' : '';
+      const rank = String(item.rank ?? idx + 1).padStart(2, '0');
+      const ttl = idx === 0 ? `<b>${escapeHtml(item.title)}</b>` : escapeHtml(item.title);
+      return `<li class="${cls}"><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"><span class="rk">${rank}</span><span class="ttl">${ttl}</span><span class="heat">${escapeHtml(formatHeatJs(item.heat, item.rank ?? idx + 1))}</span></a></li>`;
+    }).join('');
+  }
+
+  // ---- expand modal ----
+  const expandModal = document.getElementById('expand-modal')!;
+  const expandModalClose = document.getElementById('expand-modal-close')!;
+  const expandModalHead = document.getElementById('expand-modal-head')!;
+  const expandModalMeta = document.getElementById('expand-modal-meta')!;
+  const expandModalList = document.getElementById('expand-modal-list')!;
+  const expandModalFoot = document.getElementById('expand-modal-foot')!;
+
+  function openExpandModal(boardEl: HTMLElement) {
+    const platform = boardEl.dataset.platform ?? '';
+    const platformName = boardEl.dataset.platformName ?? platform;
+    const iconEl = boardEl.querySelector<HTMLElement>('.b-icon');
+    const nameEl = boardEl.querySelector<HTMLElement>('.b-name');
+    const subEl = boardEl.querySelector<HTMLElement>('.b-sub');
+    const metaEl = boardEl.querySelector<HTMLElement>('.b-meta');
+    const footEl = boardEl.querySelector<HTMLElement>('.b-foot');
+    const listEl = boardEl.querySelector<HTMLOListElement>('.b-list');
+
+    // 复制 icon 样式（背景色）
+    const iconStyle = iconEl ? iconEl.getAttribute('style') ?? '' : '';
+    const iconClass = iconEl ? Array.from(iconEl.classList).join(' ') : 'b-icon';
+    expandModalHead.innerHTML = `
+      <div class="m-icon ${iconClass}" style="${iconStyle}">${iconEl?.textContent ?? ''}</div>
+      <div>
+        <div class="m-name">${escapeHtml(nameEl?.textContent ?? platformName)}</div>
+        <div class="m-sub">${escapeHtml(subEl?.textContent ?? '')}</div>
+      </div>`;
+
+    expandModalMeta.textContent = metaEl?.textContent ?? '';
+    expandModalList.innerHTML = listEl?.innerHTML ?? '';
+    expandModalFoot.textContent = footEl?.querySelector('span')?.textContent ?? '';
+
+    expandModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    expandModalClose.focus();
+  }
+
+  function closeExpandModal() {
+    expandModal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  expandModalClose.addEventListener('click', closeExpandModal);
+  expandModal.addEventListener('click', (ev) => {
+    if (ev.target === expandModal) closeExpandModal();
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && expandModal.classList.contains('open')) closeExpandModal();
+  });
+
+  async function refreshBoard(boardEl: HTMLElement) {
+    const platform = boardEl.dataset.platform;
+    if (!platform) return;
+    const btn = boardEl.querySelector<HTMLButtonElement>('.b-refresh');
+    const list = boardEl.querySelector<HTMLOListElement>('.b-list');
+    const meta = boardEl.querySelector<HTMLDivElement>('.b-meta');
+    if (!btn || !list) return;
+    if (btn.classList.contains('is-loading')) return;
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/trends?platform=${encodeURIComponent(platform)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { items: TrendItem[]; updatedAt: string };
+      const items = data.items ?? [];
+      list.innerHTML = renderListItems(items);
+      if (meta) {
+        const t = new Date(data.updatedAt);
+        const tt = isNaN(t.getTime()) ? '刚刚' : t.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        meta.textContent = `更新 ${tt} · 在榜 ${items.length} 条`;
+      }
+      boardEl.dataset.items = JSON.stringify(items);
+      const name = boardEl.dataset.platformName ?? '热榜';
+      showToast(`✓ ${name} 已刷新 · ${items.length} 条`, 'ok');
+    } catch (e) {
+      console.error('refresh failed', e);
+      showToast('刷新失败，稍后再试', 'err');
+    } finally {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>('.board').forEach((board) => {
+    board.querySelector('.b-refresh')?.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      refreshBoard(board);
+    });
+    board.querySelector('.b-expand')?.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openExpandModal(board);
+    });
+  });
+
+  // ---- back to top ----
+  const backToTop = document.getElementById('back-to-top');
+  if (backToTop) {
+    window.addEventListener('scroll', () => {
+      backToTop.classList.toggle('visible', window.scrollY > 400);
+    }, { passive: true });
+    backToTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+</script>

@@ -1,0 +1,134 @@
+---
+interface NavItem {
+  href: string;
+  label: string;
+  active?: boolean;
+  uiVersion?: "simple" | "bold";
+}
+
+interface Props {
+  issueLabel?: string;
+  navItems?: NavItem[];
+}
+
+const {
+  issueLabel = "摸鱼 ISSUE №001",
+  navItems = [],
+} = Astro.props;
+---
+
+<header class="topbar">
+  <div class="stamp">{issueLabel}</div>
+  <div class="crumbs">
+    <slot name="crumbs">
+      <span>公开榜单链接聚合</span>
+    </slot>
+  </div>
+  <nav aria-label="主导航">
+    {navItems.map((item) => (
+      <a
+        class:list={[item.active && "active"]}
+        href={item.href}
+        aria-current={item.active ? "page" : undefined}
+        data-ui-version={item.uiVersion}
+      >
+        {item.label}
+      </a>
+    ))}
+  </nav>
+</header>
+
+<script is:inline>
+  (() => {
+    document.querySelectorAll("[data-ui-version]").forEach((link) => {
+      link.addEventListener("click", () => {
+        const version = link.dataset.uiVersion;
+        if (version) localStorage.setItem("moyu-ui-version", version);
+      });
+    });
+  })();
+</script>
+
+<style>
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    border: 2.5px solid var(--ink);
+    background: var(--paper);
+    padding: 10px 16px;
+    border-radius: 14px;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+
+  .stamp {
+    font-family: "Bagel Fat One", sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    background: var(--pink);
+    color: var(--paper);
+    padding: 4px 12px 5px;
+    border-radius: 6px;
+    border: 2px solid var(--ink);
+    transform: rotate(-3deg);
+    animation: wig 4.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  .crumbs {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #3a342f;
+    flex-wrap: wrap;
+  }
+
+  :global(.topbar .crumbs b) {
+    color: var(--ink);
+  }
+
+  nav {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  nav a {
+    font-family: "ZCOOL KuaiLe", sans-serif;
+    font-size: 14px;
+    padding: 6px 12px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: var(--paper);
+    text-decoration: none;
+    color: var(--ink);
+    transition: 0.15s;
+  }
+
+  nav a:hover {
+    background: var(--yellow);
+    transform: translateY(-1px) rotate(-1deg);
+  }
+
+  nav a.active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  @keyframes wig {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+  }
+
+  @media (max-width: 1100px) {
+    .topbar {
+      flex-wrap: wrap;
+      gap: 10px;
+      transform: none;
+    }
+  }
+</style>

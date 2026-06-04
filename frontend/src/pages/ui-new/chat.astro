@@ -1,0 +1,137 @@
+---
+import UiNewSeo from "../../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
+import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
+import { SITE_NAME, SITE_URL } from "../../lib/seo";
+import {
+  MGTV_CHAT_DEFAULT_MODEL,
+  MGTV_CHAT_MODELS,
+  MGTV_CHAT_SYSTEM_PROMPT,
+} from "../../lib/mgtv-chat";
+
+const pageTitle = "AI 助手 - OpenAI 格式流式聊天";
+const pageDescription = "前端本地保存历史对话，后端代理模型网关，支持流式输出、模型切换与 Markdown 渲染。";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: pageTitle,
+  url: `${SITE_URL}/ui-new/chat`,
+  description: pageDescription,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+};
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/ui-new/chat" robots="noindex, follow" structuredData={structuredData} />
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/chat.css?v=20260528-chat-focus" />
+  </head>
+  <body>
+    <div
+      class="chat-page-shell"
+      data-chat-model={MGTV_CHAT_DEFAULT_MODEL}
+      data-chat-system-prompt={MGTV_CHAT_SYSTEM_PROMPT}
+    >
+      <UiNewTopBar active="chat" />
+
+      <section class="chat-activity-notice" aria-label="AI 模型代理提示">
+        <p>
+          不定期寻找更新免费的资源模型，只作为轻量办公使用！过期于 2026年6月7日
+        </p>
+        <!-- <a href="https://freetheai.xyz/models/" target="_blank" rel="noopener noreferrer">查看模型</a> -->
+      </section>
+
+      <main class="chat-layout">
+        <aside class="chat-sidebar" aria-label="历史对话">
+          <div class="chat-sidebar-head">
+            <div>
+              <p class="chat-kicker">LOCAL MEMORY</p>
+              <h1>历史对话</h1>
+            </div>
+            <button class="chat-ghost-button" type="button" data-chat-new-thread>新建</button>
+          </div>
+
+          <div class="chat-thread-list ui-scrollbar" data-chat-thread-list></div>
+        </aside>
+
+        <section class="chat-main" aria-label="对话区域">
+          <header class="chat-main-head">
+            <h2 data-chat-thread-title>New chat</h2>
+            <div class="chat-head-actions">
+              <button class="chat-ghost-button" type="button" data-chat-settings-toggle>代理说明</button>
+            </div>
+          </header>
+
+          <section class="chat-settings-panel" hidden data-chat-settings-panel aria-label="聊天代理说明">
+            <div class="chat-settings-copy">
+              <h3>服务端代理</h3>
+              <p>模型请求由后端转发，浏览器不会直连第三方网关，也不会保存网关密钥。</p>
+            </div>
+            <p class="chat-settings-status" data-chat-sk-status>模型列表与聊天请求均走本站后端代理。</p>
+          </section>
+
+          <div class="chat-error-banner" hidden data-chat-global-error></div>
+
+          <div class="chat-message-stream ui-scrollbar" data-chat-message-list>
+            <section class="chat-empty-state" data-chat-empty-state></section>
+          </div>
+
+          <form class="chat-composer" data-chat-form>
+            <label class="sr-only" for="chat-input">输入消息</label>
+            <textarea
+              id="chat-input"
+              name="prompt"
+              rows="3"
+              maxlength="8000"
+              placeholder="直接输入你想问的内容，比如：帮我把这段话整理得更清楚。"
+              data-chat-input
+            ></textarea>
+            <div class="chat-composer-bar">
+              <div class="chat-composer-left">
+                <div class="chat-model-selector" data-chat-model-selector>
+                  <button class="chat-model-trigger" type="button" data-chat-model-trigger aria-haspopup="listbox" aria-expanded="false">
+                    <span data-chat-model-label>{MGTV_CHAT_MODELS.find((m) => m.value === MGTV_CHAT_DEFAULT_MODEL)?.label}</span>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <ul class="chat-model-dropdown" role="listbox" data-chat-model-dropdown hidden>
+                    {MGTV_CHAT_MODELS.map((model) => (
+                      <li
+                        class="chat-model-option"
+                        role="option"
+                        data-value={model.value}
+                        data-description={model.description}
+                      >
+                        <span class="chat-model-option-name">{model.label}</span>
+                        <span class="chat-model-option-desc">{model.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <p class="chat-composer-tip">Shift+Enter 换行</p>
+              </div>
+              <div class="chat-composer-actions">
+                <button class="chat-ghost-button" type="button" data-chat-stop disabled>停止</button>
+                <button class="chat-primary-button" type="submit" data-chat-submit>发送</button>
+              </div>
+            </div>
+          </form>
+        </section>
+      </main>
+
+      <UiNewFooter />
+    </div>
+
+    <script>
+      import "../../scripts/ui-new-chat";
+    </script>
+  </body>
+</html>

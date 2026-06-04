@@ -1,0 +1,317 @@
+---
+import UiNewSeo from "../../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
+import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
+import { fetchMarketUs, fetchUsStocks } from "../../lib/api";
+import { SITE_NAME, SITE_URL } from "../../lib/seo";
+import type { MarketIndex, MarketResponse, MarketStock, StocksResponse } from "../../lib/types";
+
+const nowIso = new Date().toISOString();
+
+const fallbackMarket: MarketResponse = {
+  items: [],
+  stale: true,
+  updatedAt: nowIso,
+};
+
+const fallbackStocks: StocksResponse = {
+  items: [],
+  stale: true,
+  updatedAt: nowIso,
+};
+
+const [marketData, stocksData] = await Promise.all([
+  fetchMarketUs().catch(() => fallbackMarket),
+  fetchUsStocks().catch(() => fallbackStocks),
+]);
+
+const indexOrder = ["DJI", "SPX", "IXIC"] as const;
+const indices = indexOrder
+  .map((symbol) => marketData.items.find((item) => item.symbol === symbol))
+  .filter((item): item is MarketIndex => Boolean(item));
+const stocks = stocksData.items.slice(0, 10);
+const updatedAt = marketData.updatedAt || stocksData.updatedAt || nowIso;
+const tradeDate = indices[0]?.tradeDate || stocks[0]?.tradeDate || "";
+const disclaimer =
+  indices[0]?.disclaimer || stocks[0]?.disclaimer || "仅供信息展示，不构成投资建议";
+const pageTitle = "美股行情 - 三大指数与热门个股 | 摸鱼热榜";
+const pageDescription = "查看道琼斯、标普 500、纳斯达克三大指数和热门美股个股，快速了解美股市场大致涨跌情况。";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: pageTitle,
+  url: `${SITE_URL}/ui-new/finance`,
+  description: pageDescription,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  about: ["美股行情", "道琼斯", "标普 500", "纳斯达克", "热门美股"],
+  hasPart: [
+    {
+      "@type": "ItemList",
+      name: "美股三大指数",
+      numberOfItems: indices.length,
+      itemListElement: indices.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: item.name,
+        url: item.url,
+      })),
+    },
+    {
+      "@type": "ItemList",
+      name: "热门美股个股",
+      numberOfItems: stocks.length,
+      itemListElement: stocks.slice(0, 10).map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: `${item.name} ${item.symbol}`,
+        url: item.url,
+      })),
+    },
+  ],
+};
+
+function formatSigned(value: number): string {
+  const fixed = Math.abs(value).toFixed(2);
+  return value >= 0 ? `+${fixed}` : `-${fixed}`;
+}
+
+function formatPercent(value: number): string {
+  return `${formatSigned(value)}%`;
+}
+
+function formatPrice(value: number): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatUpdatedTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatTradeDate(value: string): string {
+  if (!value) return "交易日待同步";
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${year}.${month}.${day}`;
+}
+
+function indexCnName(symbol: string, fallback: string): string {
+  if (symbol === "DJI") return "道琼斯";
+  if (symbol === "SPX") return "标普 500";
+  if (symbol === "IXIC") return "纳斯达克";
+  return fallback;
+}
+
+function indexNote(symbol: string): string {
+  if (symbol === "DJI") return "工业股温度";
+  if (symbol === "SPX") return "大盘基准";
+  if (symbol === "IXIC") return "科技股风向";
+  return "市场指数";
+}
+
+function sparkPoints(seed: string, up: boolean): string {
+  const total = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const points = Array.from({ length: 8 }, (_, index) => {
+    const x = index * 18;
+    const wave = Math.sin((total + index * 17) / 11) * 10;
+    const slope = up ? 26 - index * 2.7 : 18 + index * 2.4;
+    const y = Math.max(8, Math.min(42, slope + wave));
+    return `${x},${y.toFixed(1)}`;
+  });
+  return points.join(" ");
+}
+
+function movementClass(item: MarketIndex | MarketStock): string {
+  return item.changePct >= 0 ? "is-up" : "is-down";
+}
+
+type SparkPoint = {
+  x: number;
+  y: number;
+};
+
+function stockSparkPoints(seed: string, up: boolean): SparkPoint[] {
+  const total = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const length = 12;
+  return Array.from({ length }, (_, index) => {
+    const x = 4 + (128 / (length - 1)) * index;
+    const drift = up ? 25 - index * 1.72 : 11 + index * 1.72;
+    const wave = Math.sin((total + index * 17) / 12) * 3.8;
+    const counter = Math.cos((total + index * 11) / 10) * 1.5;
+    const y = Math.max(5, Math.min(31, drift + wave + counter));
+    return { x, y };
+  });
+}
+
+function formatPoint(point: SparkPoint): string {
+  return `${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+}
+
+function stockSparkPath(points: SparkPoint[]): string {
+  if (points.length === 0) return "";
+  return points.reduce((path, point, index) => {
+    if (index === 0) return `M${formatPoint(point)}`;
+    const previous = points[index - 1];
+    const controlOffset = (point.x - previous.x) * 0.38;
+    const c1 = { x: previous.x + controlOffset, y: previous.y };
+    const c2 = { x: point.x - controlOffset, y: point.y };
+    return `${path} C${formatPoint(c1)} ${formatPoint(c2)} ${formatPoint(point)}`;
+  }, "");
+}
+
+function stockSparkArea(points: SparkPoint[]): string {
+  const path = stockSparkPath(points);
+  if (!path) return "";
+  const first = points[0];
+  const last = points.at(-1) ?? first;
+  return `${path} L${last.x.toFixed(1)},36 L${first.x.toFixed(1)},36 Z`;
+}
+
+function stockSparkLastPoint(points: SparkPoint[]): SparkPoint {
+  return points.at(-1) ?? { x: 132, y: 18 };
+}
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/ui-new/finance" structuredData={structuredData} />
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/finance.css" />
+  </head>
+  <body>
+    <div class="finance-shell">
+      <UiNewTopBar active="finance" />
+
+      <main class="finance-layout">
+        <header class="finance-hero">
+          <div class="hero-copy">
+            <p class="eyebrow">US MARKET / {formatTradeDate(tradeDate)}</p>
+            <h1>美股</h1>
+            <p>快速查看美股三大指数和 10 个热门个股，了解今天市场大致涨跌情况。</p>
+          </div>
+          <div class="market-meta" aria-label="行情状态">
+            <span>更新 {formatUpdatedTime(updatedAt)}</span>
+          </div>
+        </header>
+
+        <section class="index-section" aria-labelledby="indices-title">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">Major Indices</p>
+              <h2 id="indices-title">大盘数据</h2>
+            </div>
+          </div>
+
+          {indices.length > 0 ? (
+            <div class="index-grid">
+              {indices.map((item) => {
+                const up = item.changePct >= 0;
+                return (
+                  <a class:list={["index-card", movementClass(item)]} href={item.url} target="_blank" rel="noopener noreferrer">
+                    <div class="index-card-head">
+                      <span class="symbol">{item.symbol}</span>
+                      <span>{indexNote(item.symbol)}</span>
+                    </div>
+                    <h3>{indexCnName(item.symbol, item.name)}</h3>
+                    <p>{item.name}</p>
+                    <div class="index-price">{formatPrice(item.price)}</div>
+                    <div class="delta-row">
+                      <span>{up ? "▲" : "▼"} {formatSigned(item.change)}</span>
+                      <strong>{formatPercent(item.changePct)}</strong>
+                    </div>
+                    <svg class="sparkline" viewBox="0 0 126 52" preserveAspectRatio="none" aria-hidden="true">
+                      <polyline points={sparkPoints(item.symbol, up)} />
+                    </svg>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div class="empty-panel">大盘接口当前没有返回指数数据。</div>
+          )}
+        </section>
+
+        <section class="stocks-section" aria-labelledby="stocks-title">
+          <div class="section-head compact">
+            <div>
+              <p class="section-kicker">Hot Stocks</p>
+              <h2 id="stocks-title">热门个股</h2>
+            </div>
+            <span>{stocks.length} / 10</span>
+          </div>
+
+          {stocks.length > 0 ? (
+            <div class="stock-table" role="table" aria-label="热门美股个股">
+              <div class="stock-row stock-row-head" role="row">
+                <span role="columnheader">股票</span>
+                <span role="columnheader">最新价</span>
+                <span role="columnheader">涨跌额</span>
+                <span role="columnheader">涨跌幅</span>
+                <span role="columnheader">交易日</span>
+                <span role="columnheader">趋势</span>
+              </div>
+              {stocks.map((item) => {
+                const up = item.changePct >= 0;
+                return (
+                  <a class:list={["stock-row", movementClass(item)]} href={item.url} target="_blank" rel="noopener noreferrer" role="row">
+                    <span class="stock-name" role="cell">
+                      <strong>{item.symbol}</strong>
+                      <small>{item.name}</small>
+                    </span>
+                    <span class="stock-price" role="cell">$ {formatPrice(item.price)}</span>
+                    <span class="stock-delta" role="cell">{formatSigned(item.change)}</span>
+                    <span class="stock-change" role="cell">
+                      {up ? "▲" : "▼"} {formatPercent(item.changePct)}
+                    </span>
+                    <span class="stock-date" role="cell">{formatTradeDate(item.tradeDate)}</span>
+                    <span class="stock-spark" role="cell" aria-label={`${item.symbol} ${up ? "上涨" : "下跌"}趋势`}>
+                      {(() => {
+                        const points = stockSparkPoints(item.symbol, up);
+                        const path = stockSparkPath(points);
+                        const lastPoint = stockSparkLastPoint(points);
+                        return (
+                          <svg viewBox="0 0 136 38" preserveAspectRatio="none" aria-hidden="true">
+                            <line class="spark-guide" x1="4" y1="8" x2="132" y2="8" />
+                            <path class="spark-area" d={stockSparkArea(points)} />
+                            <line class="spark-midline" x1="4" y1="19" x2="132" y2="19" />
+                            <line class="spark-guide" x1="4" y1="30" x2="132" y2="30" />
+                            <path class="spark-line" d={path} />
+                            <circle class="spark-dot" cx={lastPoint.x.toFixed(1)} cy={lastPoint.y.toFixed(1)} r="2.4" />
+                          </svg>
+                        );
+                      })()}
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div class="empty-panel">个股行情接口当前返回空列表。</div>
+          )}
+        </section>
+
+        <footer class="finance-foot">
+          <span>行情有延迟，仅供日常查看</span>
+          <strong>{disclaimer}</strong>
+        </footer>
+      </main>
+      <UiNewFooter />
+    </div>
+  </body>
+</html>

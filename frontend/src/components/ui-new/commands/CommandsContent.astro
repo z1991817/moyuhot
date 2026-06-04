@@ -1,0 +1,55 @@
+---
+import type { AiToolCommandGuide } from "../../../lib/ai-tool-commands";
+
+type Props = {
+  tools: AiToolCommandGuide[];
+};
+
+const { tools } = Astro.props;
+---
+
+<main class="commands-content" id="commands-content">
+  {tools.map((tool) => (
+    <section class="tool-section" id={tool.id} data-tool-section={tool.id}>
+      <header class="tool-header">
+        <div class="tool-title-row">
+          <h2>{tool.name}</h2>
+          <a
+            class="tool-docs-link"
+            href={tool.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${tool.name} 官方文档`}
+          >
+            官方文档
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M5 3h8v8M13 3 3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </div>
+        <p class="tool-subtitle">{tool.subtitle}</p>
+      </header>
+
+      {tool.sections.map((section) => (
+        <div class="cmd-section">
+          <h3 class="cmd-section-title">{section.title}</h3>
+          <div class="cmd-table">
+            {section.commands.map((cmd) => (
+              <div class="cmd-row">
+                <div class="cmd-cell cmd-cell-name">
+                  <code class="cmd-code">{cmd.cmd}</code>
+                </div>
+                <div class="cmd-cell cmd-cell-desc">
+                  <span>{cmd.desc}</span>
+                  {cmd.example && (
+                    <code class="cmd-example">{cmd.example}</code>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  ))}
+</main>

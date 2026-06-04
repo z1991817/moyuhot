@@ -1,0 +1,565 @@
+---
+import UiNewSeo from "../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../components/ui-new/UiNewFooter.astro";
+import UiNewTopBar from "../components/ui-new/UiNewTopBar.astro";
+import { fetchHome } from "../lib/api";
+import { SITE_KEYWORDS, SITE_NAME, SITE_URL } from "../lib/seo";
+import { buildUiNewBoards, formatUiNewTime, groupUiNewBoards } from "../lib/ui-new";
+import type { HomeResponse } from "../lib/types";
+
+const fallbackHome: HomeResponse = {
+  trends: [],
+  markets: [],
+  sources: [],
+  calendar: {
+    date: new Date().toISOString().slice(0, 10),
+    isRestDay: false,
+    kind: "workday",
+    name: null,
+  },
+  stale: true,
+  updatedAt: new Date().toISOString(),
+};
+
+const data = await fetchHome().catch(() => fallbackHome);
+const boards = buildUiNewBoards(data);
+const boardGroups = groupUiNewBoards(boards);
+const hasBoards = boardGroups.length > 0;
+const clientApiBase = import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "/api";
+const pageTitle = "摸鱼热榜 - 微博知乎B站抖音热搜聚合";
+const pageDescription =
+  "摸鱼热榜聚合微博、知乎、B站、抖音、虎扑、百度、GitHub、V2EX 等公开热榜，帮你快速扫一眼今天大家在聊什么。";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: pageTitle,
+  url: SITE_URL,
+  description: pageDescription,
+  keywords: SITE_KEYWORDS,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  about: ["热搜平台", "热搜聚合", "今日热搜", "微博热搜", "知乎热榜", "B站热搜"],
+  hasPart: boards.slice(0, 12).map((board) => ({
+    "@type": "ItemList",
+    name: `${board.platformName}热榜`,
+    numberOfItems: board.items.length,
+    itemListElement: board.items.slice(0, 10).map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.title,
+      url: item.url,
+    })),
+  })),
+};
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/" structuredData={structuredData} />
+    <script is:inline>
+      (() => {
+        try {
+          if (localStorage.getItem("moyu-ui-version") === "bold") {
+            window.location.replace("/bold");
+            return;
+          }
+          const savedSkin = localStorage.getItem("trend-skin") || "dim";
+          document.documentElement.dataset.skin = savedSkin === "dim" ? "dim" : "";
+        } catch {
+          document.documentElement.dataset.skin = "dim";
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/preview.css" />
+  </head>
+  <body>
+    <div class="app-shell" data-api-base={clientApiBase}>
+      <UiNewTopBar active="home" />
+      <aside class="skin-switch-note" aria-label="界面版本提示">
+        <span>本站 UI 已修改为简约版。</span>
+        <a href="/bold" data-ui-version="bold">如果您还是喜欢以前的 UI，可以切换到大胆版。</a>
+      </aside>
+      {hasBoards && (
+        <dialog class="home-settings-dialog" aria-labelledby="home-settings-title" data-home-settings-dialog>
+          <form method="dialog" class="home-settings-panel">
+            <header class="home-settings-head">
+              <div>
+                <p class="home-settings-kicker">SETTINGS</p>
+                <h2 id="home-settings-title">首页热榜设置</h2>
+              </div>
+              <button class="settings-icon-button" type="submit" aria-label="关闭设置" title="关闭设置">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="m5.5 5.5 9 9M14.5 5.5l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+              </button>
+            </header>
+            <div class="home-settings-body">
+              <p class="home-settings-note">按首页分类管理卡片。拖动名称调整同分类内顺序，关闭开关可隐藏卡片。</p>
+              <div class="settings-category-list" data-settings-category-list aria-label="首页热榜卡片设置"></div>
+            </div>
+            <footer class="home-settings-foot">
+              <button class="quiet-button" type="button" data-settings-reset>恢复默认</button>
+              <button class="quiet-button is-primary" type="submit">完成</button>
+            </footer>
+          </form>
+        </dialog>
+      )}
+
+      <main>
+        {hasBoards ? (
+          <div class="category-stack">
+            <h1 class="sr-only">摸鱼热榜 - 微博知乎B站抖音热搜聚合</h1>
+            {boardGroups.map((group) => (
+              <section class="category-section" data-category={group.id} aria-labelledby={`category-${group.id}`}>
+                <header class="category-head">
+                  <div>
+                    <h2 id={`category-${group.id}`}>{group.label}</h2>
+                  </div>
+                </header>
+                <div class="platform-grid">
+                  {group.boards.map((board) => (
+                    <article class="platform-card" data-platform={board.platform} data-platform-name={board.platformName}>
+                      <header class="platform-head">
+                        <div class="platform-title">
+                          {board.iconUrl ? (
+                            <img class="platform-icon" src={board.iconUrl} alt="" aria-hidden="true" />
+                          ) : (
+                            <span class="platform-icon" aria-hidden="true"></span>
+                          )}
+                          <h3>{board.platformName}</h3>
+                        </div>
+                        <button class="card-refresh" type="button" aria-label={`刷新${board.platformName}`}>
+                          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M15.75 6.75A6.5 6.5 0 1 0 16 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M15.75 3.75v3h-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </button>
+                      </header>
+                      <ol class="hot-list">
+                        {board.items.map((item, index) => {
+                          const rank = item.rank || index + 1;
+                          return (
+                            <li class="hot-item">
+                              <span class={`rank ${index < 3 ? "top" : ""}`}>{String(rank).padStart(2, "0")}</span>
+                              <div class="hot-topic">
+                                <a class="hot-title" href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                      <footer class="card-foot"><span>更新时间</span><strong data-updated-at>{formatUiNewTime(board.updatedAt)}</strong></footer>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <section class="empty-state" aria-labelledby="empty-title">
+            <p class="empty-kicker">NO DATA</p>
+            <h1 id="empty-title">热榜数据暂时没有返回</h1>
+            <p>页面结构已经加载，但本地 API 服务当前不可用或没有返回热榜内容。启动后端后刷新页面即可看到平台列表。</p>
+          </section>
+        )}
+      </main>
+      <UiNewFooter />
+      <div class="toast-host" aria-live="polite" aria-atomic="true"></div>
+    </div>
+    <script>
+      // @ts-nocheck
+      import Sortable from "sortablejs";
+
+      const API_BASE = document.querySelector(".app-shell")?.dataset.apiBase || "/api";
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function formatTime(iso) {
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) return "--:--";
+        return date.toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+      }
+
+      function renderItems(items) {
+        return items
+          .map((item, index) => {
+            const rank = item.rank || index + 1;
+            const rankClass = index < 3 ? "rank top" : "rank";
+            return `
+              <li class="hot-item">
+                <span class="${rankClass}">${String(rank).padStart(2, "0")}</span>
+                <div class="hot-topic">
+                  <a class="hot-title" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a>
+                </div>
+              </li>
+            `;
+          })
+          .join("");
+      }
+
+      function showToast(message, type = "ok") {
+        const host = document.querySelector(".toast-host");
+        if (!host) return;
+        const toast = document.createElement("div");
+        toast.className = `toast ${type === "error" ? "is-error" : ""}`;
+        toast.textContent = message;
+        host.append(toast);
+        requestAnimationFrame(() => toast.classList.add("is-visible"));
+        window.setTimeout(() => {
+          toast.classList.remove("is-visible");
+          toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+        }, 2200);
+      }
+
+      async function refreshCard(card) {
+        const platform = card.dataset.platform;
+        if (!platform || card.classList.contains("is-refreshing")) return;
+
+        const button = card.querySelector(".card-refresh");
+        const list = card.querySelector(".hot-list");
+        const updatedAt = card.querySelector("[data-updated-at]");
+        const platformName = card.dataset.platformName || "热榜";
+        if (!button || !list) return;
+
+        card.classList.add("is-refreshing");
+        button.disabled = true;
+
+        try {
+          const response = await fetch(`${API_BASE}/trends?platform=${encodeURIComponent(platform)}&refresh=true`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          const items = payload.items || [];
+          list.innerHTML = renderItems(items);
+          list.scrollTop = 0;
+          if (updatedAt) updatedAt.textContent = formatTime(payload.updatedAt);
+          showToast(`${platformName} 已刷新 · ${items.length} 条`);
+        } catch (error) {
+          console.error("refresh failed", error);
+          showToast(`${platformName} 刷新失败`, "error");
+        } finally {
+          card.classList.remove("is-refreshing");
+          button.disabled = false;
+        }
+      }
+
+      document.querySelectorAll(".platform-card").forEach((card) => {
+        card.querySelector(".card-refresh")?.addEventListener("click", () => refreshCard(card));
+      });
+
+      document.querySelectorAll("[data-ui-version]").forEach((link) => {
+        link.addEventListener("click", () => {
+          const version = link.dataset.uiVersion;
+          if (version) localStorage.setItem("moyu-ui-version", version);
+        });
+      });
+
+      (() => {
+        const STORAGE_KEY = "moyu-home-platform-settings";
+        const dialog = document.querySelector("[data-home-settings-dialog]");
+        const openButton = document.querySelector("[data-settings-open]");
+        const categoryList = document.querySelector("[data-settings-category-list]");
+        const resetButton = document.querySelector("[data-settings-reset]");
+        const cards = Array.from(document.querySelectorAll(".platform-card"));
+        if (!dialog || !openButton || !categoryList || cards.length === 0) return;
+        const sortableInstances = [];
+
+        const defaults = cards.map((card, index) => ({
+          id: card.dataset.platform,
+          name: card.dataset.platformName || card.dataset.platform || "平台",
+          categoryId: card.closest(".category-section")?.dataset.category || "general",
+          categoryName: card.closest(".category-section")?.querySelector(".category-head h2")?.textContent?.trim() || "其他",
+          visible: true,
+          order: (index + 1) * 10,
+        })).filter((item) => item.id);
+
+        const categories = defaults.reduce((acc, item) => {
+          if (!acc.some((category) => category.id === item.categoryId)) {
+            acc.push({ id: item.categoryId, name: item.categoryName });
+          }
+          return acc;
+        }, []);
+
+        function normalizeSettings(value) {
+          const saved = Array.isArray(value?.platforms) ? value.platforms : [];
+          const savedById = new Map(saved.filter((item) => typeof item.id === "string").map((item) => [item.id, item]));
+          return {
+            version: 1,
+            platforms: defaults.map((item) => {
+              const savedItem = savedById.get(item.id);
+              return {
+                ...item,
+                visible: typeof savedItem?.visible === "boolean" ? savedItem.visible : item.visible,
+                order: Number.isFinite(savedItem?.order) ? savedItem.order : item.order,
+              };
+            }).sort((a, b) => {
+              if (a.categoryId !== b.categoryId) {
+                return categories.findIndex((category) => category.id === a.categoryId) - categories.findIndex((category) => category.id === b.categoryId);
+              }
+              return a.order - b.order;
+            }),
+          };
+        }
+
+        function readSettings() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return normalizeSettings(raw ? JSON.parse(raw) : null);
+          } catch {
+            return normalizeSettings(null);
+          }
+        }
+
+        function writeSettings(settings) {
+          const normalized = {
+            version: 1,
+            platforms: settings.platforms.map((item) => ({
+              id: item.id,
+              visible: item.visible,
+              order: item.order,
+            })),
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+          return normalizeSettings(normalized);
+        }
+
+        function getCategoryForCard(card) {
+          return card.closest(".category-section");
+        }
+
+        function syncEmptyCategories() {
+          document.querySelectorAll(".category-section").forEach((section) => {
+            const visibleCards = section.querySelectorAll(".platform-card:not([hidden])");
+            section.hidden = visibleCards.length === 0;
+          });
+        }
+
+        function snapshotPositions(selector, root = document) {
+          return new Map(Array.from(root.querySelectorAll(selector)).map((node) => [node, node.getBoundingClientRect()]));
+        }
+
+        function playPositionTransitions(previousPositions, options = {}) {
+          const duration = options.duration || 180;
+          const easing = options.easing || "cubic-bezier(.2,.8,.2,1)";
+          previousPositions.forEach((previous, node) => {
+            if (!(node instanceof HTMLElement) || !node.isConnected || node.hidden) return;
+            const next = node.getBoundingClientRect();
+            const deltaX = previous.left - next.left;
+            const deltaY = previous.top - next.top;
+            if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
+            if (typeof node.animate === "function") {
+              node.animate(
+                [
+                  { transform: `translate(${deltaX}px, ${deltaY}px)` },
+                  { transform: "translate(0, 0)" },
+                ],
+                { duration, easing }
+              );
+              return;
+            }
+            const previousTransition = node.style.transition;
+            node.style.transition = "none";
+            node.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            requestAnimationFrame(() => {
+              node.style.transition = `transform ${duration}ms ${easing}`;
+              node.style.transform = "";
+              window.setTimeout(() => {
+                node.style.transition = previousTransition;
+              }, duration + 30);
+            });
+          });
+        }
+
+        function applySettings(settings) {
+          const cardPositions = snapshotPositions(".platform-card:not([hidden])");
+          const sectionPositions = snapshotPositions(".category-section:not([hidden])");
+          const cardById = new Map(cards.map((card) => [card.dataset.platform, card]));
+          const stack = document.querySelector(".category-stack");
+          const movedSections = new Set();
+          settings.platforms.forEach((item) => {
+            const card = cardById.get(item.id);
+            const category = getCategoryForCard(card);
+            const grid = category?.querySelector(".platform-grid");
+            if (card && grid) {
+              card.hidden = !item.visible;
+              grid.append(card);
+              if (item.visible && stack && category && !movedSections.has(category)) {
+                stack.append(category);
+                movedSections.add(category);
+              }
+            }
+          });
+          syncEmptyCategories();
+          const visibleCount = settings.platforms.filter((item) => item.visible).length;
+          const settingsTitle = `首页设置 · 已显示 ${visibleCount} / ${settings.platforms.length} 个平台`;
+          openButton.setAttribute("title", settingsTitle);
+          openButton.setAttribute("aria-label", settingsTitle);
+          playPositionTransitions(sectionPositions, { duration: 200 });
+          playPositionTransitions(cardPositions, { duration: 220 });
+        }
+
+        function reorderWithinCategory(platforms) {
+          return categories.flatMap((category) =>
+            platforms
+              .filter((item) => item.categoryId === category.id)
+              .map((item, index) => ({ ...item, order: (index + 1) * 10 }))
+          );
+        }
+
+        function renderSettings(settings) {
+          const visibleCount = settings.platforms.filter((item) => item.visible).length;
+          categoryList.innerHTML = categories.map((category) => {
+            const items = settings.platforms.filter((item) => item.categoryId === category.id);
+            if (items.length === 0) return "";
+            return `
+              <section class="settings-category" data-settings-category="${escapeHtml(category.id)}">
+                <header class="settings-category-head">
+                  <h3>${escapeHtml(category.name)}</h3>
+                  <span>${items.filter((item) => item.visible).length} / ${items.length}</span>
+                </header>
+                <div class="settings-platform-list" data-settings-platform-list="${escapeHtml(category.id)}">
+                  ${items.map((item) => {
+                    const disabledToggle = item.visible && visibleCount <= 1 ? "disabled" : "";
+                    const checked = item.visible ? "checked" : "";
+                    return `
+                      <div class="settings-platform-chip ${item.visible ? "" : "is-hidden"}" data-id="${escapeHtml(item.id)}" data-settings-platform="${escapeHtml(item.id)}">
+                        <span class="settings-drag-handle" role="button" tabindex="0" aria-label="拖动${escapeHtml(item.name)}排序" title="拖动排序">
+                          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M7 5.5h.01M7 10h.01M7 14.5h.01M13 5.5h.01M13 10h.01M13 14.5h.01" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+                          </svg>
+                        </span>
+                        <span class="settings-platform-name">${escapeHtml(item.name)}</span>
+                        <label class="settings-switch">
+                          <input type="checkbox" ${checked} ${disabledToggle} aria-label="${escapeHtml(item.name)}显示状态" />
+                          <span aria-hidden="true"></span>
+                        </label>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </section>
+            `;
+          }).join("");
+          initSortableLists();
+        }
+
+        function update(nextSettings) {
+          const settings = writeSettings(nextSettings);
+          applySettings(settings);
+          renderSettings(settings);
+          return settings;
+        }
+
+        let currentSettings = readSettings();
+        applySettings(currentSettings);
+        renderSettings(currentSettings);
+
+        openButton.addEventListener("click", () => {
+          currentSettings = readSettings();
+          renderSettings(currentSettings);
+          if (typeof dialog.showModal === "function") {
+            dialog.showModal();
+          } else {
+            dialog.setAttribute("open", "");
+          }
+        });
+
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog) dialog.close();
+        });
+
+        categoryList.addEventListener("change", (event) => {
+          const input = event.target;
+          if (!(input instanceof HTMLInputElement)) return;
+          const row = input.closest("[data-settings-platform]");
+          const id = row?.dataset.settingsPlatform;
+          if (!id) return;
+          const platforms = currentSettings.platforms.map((item) => item.id === id ? { ...item, visible: input.checked } : item);
+          if (platforms.every((item) => !item.visible)) return;
+          currentSettings = update({ version: 1, platforms });
+        });
+
+        categoryList.addEventListener("keydown", (event) => {
+          const handle = event.target.closest?.(".settings-drag-handle");
+          if (!handle || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+          const chip = handle.closest("[data-settings-platform]");
+          const list = chip?.closest("[data-settings-platform-list]");
+          if (!chip || !list) return;
+          const sibling = event.key === "ArrowUp" ? chip.previousElementSibling : chip.nextElementSibling;
+          if (!sibling) return;
+          event.preventDefault();
+          if (event.key === "ArrowUp") {
+            list.insertBefore(chip, sibling);
+          } else {
+            list.insertBefore(sibling, chip);
+          }
+          commitSettingsOrderFromDom();
+          categoryList.querySelector(`[data-settings-platform="${chip.dataset.settingsPlatform}"] .settings-drag-handle`)?.focus();
+        });
+
+        function commitSettingsOrderFromDom() {
+          const orderedIds = Array.from(categoryList.querySelectorAll("[data-settings-platform]")).map((chip) => chip.dataset.settingsPlatform).filter(Boolean);
+          const itemById = new Map(currentSettings.platforms.map((item) => [item.id, item]));
+          const platforms = reorderWithinCategory(orderedIds.map((id) => itemById.get(id)).filter(Boolean));
+          currentSettings = update({ version: 1, platforms });
+        }
+
+        function initSortableLists() {
+          sortableInstances.splice(0).forEach((instance) => instance.destroy());
+          categoryList.querySelectorAll("[data-settings-platform-list]").forEach((list) => {
+            list.dataset.sortableReady = "true";
+            sortableInstances.push(new Sortable(list, {
+              animation: 190,
+              easing: "cubic-bezier(.2,.8,.2,1)",
+              direction: "vertical",
+              draggable: ".settings-platform-chip",
+              handle: ".settings-drag-handle",
+              ghostClass: "is-sortable-ghost",
+              chosenClass: "is-sortable-chosen",
+              dragClass: "is-sortable-drag",
+              forceFallback: true,
+              supportPointer: false,
+              fallbackClass: "is-sortable-fallback",
+              fallbackOnBody: true,
+              fallbackTolerance: 3,
+              dataIdAttr: "data-settings-platform",
+              swapThreshold: 0.32,
+              invertedSwapThreshold: 0.68,
+              invertSwap: false,
+              scroll: true,
+              bubbleScroll: true,
+              onEnd: commitSettingsOrderFromDom,
+            }));
+          });
+          window.__moyuSortableReady = sortableInstances.length;
+        }
+
+        resetButton?.addEventListener("click", () => {
+          localStorage.removeItem(STORAGE_KEY);
+          currentSettings = readSettings();
+          applySettings(currentSettings);
+          renderSettings(currentSettings);
+          showToast("首页设置已恢复默认");
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,282 @@
+---
+import "../styles/global.css";
+import BaseLayout from "../components/BaseLayout.astro";
+import MainTopBar from "../components/MainTopBar.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import { absoluteUrl, SITE_NAME, SITE_URL } from "../lib/seo";
+
+const updatedAt = new Date();
+const updatedDate = updatedAt.toLocaleDateString("zh-CN", {
+  month: "2-digit",
+  day: "2-digit",
+});
+const updatedTime = updatedAt.toLocaleTimeString("zh-CN", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const pageTitle = "关于摸鱼热榜 - 参与共建与版权声明";
+const pageDescription =
+  "摸鱼热榜开源版说明。欢迎通过开源仓库参与共建；本站只聚合公开榜单标题、热度、排名和原站链接。";
+const aboutStructuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: pageTitle,
+    url: absoluteUrl("/about"),
+    description: pageDescription,
+    inLanguage: "zh-CN",
+    isPartOf: {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "首页",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "关于摸鱼热榜",
+        item: absoluteUrl("/about"),
+      },
+    ],
+  },
+];
+---
+
+<BaseLayout title={pageTitle} description={pageDescription} canonical="/about" structuredData={aboutStructuredData}>
+  <main>
+    <div class="wrap">
+      <MainTopBar
+        issueLabel="摸鱼热榜"
+        navItems={[
+          { href: "/", label: "热榜" },
+          { href: "/about", label: "关于", active: true },
+        ]}
+      >
+        <Fragment slot="crumbs">
+          <span><b>{updatedDate}</b> 更新</span>
+          <span>开源版说明</span>
+          <span>同步时间 <b>{updatedTime}</b></span>
+        </Fragment>
+      </MainTopBar>
+
+      <section class="contact-section">
+        <div class="section-label">参与共建</div>
+        <div class="contact-grid">
+          <div class="contact-left">
+            <p class="contact-intro">看到错漏、想加平台、或者有更好的实现方式，欢迎通过开源仓库反馈。小工具最好的维护方式，是让好想法可以被看见、讨论和合并。</p>
+            <div class="contact-chips">
+              <div class="chip issue-chip">
+                <div class="chip-label">Issue</div>
+                <div class="chip-value">Bug / 平台建议</div>
+                <div class="chip-hint">描述复现路径或期望行为</div>
+              </div>
+              <div class="chip pr-chip">
+                <div class="chip-label">Pull Request</div>
+                <div class="chip-value">修复 / 改进</div>
+                <div class="chip-hint">保持数据边界清晰</div>
+              </div>
+            </div>
+          </div>
+          <div class="contact-right">
+            <a href="https://github.com/z1991817/moyuhot" class="repo-link" target="_blank" rel="noopener noreferrer">
+              查看开源仓库 →
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="legal-section">
+        <div class="section-label">版权与数据声明</div>
+        <div class="legal-card">
+          <span class="legal-sticker">NOTICE</span>
+          <p>摸鱼热榜展示的标题、热度、排名与链接，均来源于各平台公开可访问的信息。相关内容的版权归原始创作者或发布平台所有。</p>
+          <p>本站尊重知识产权，只提供信息索引与跳转服务，不复制、不存储、不转码源站正文、图片、视频或评论内容，也不会生成、篡改任何源站内容。</p>
+          <p>若你认为页面中的索引链接涉及侵权或不当展示，请通过开源仓库反馈。确认后，我们会尽快处理并移除相关入口。</p>
+        </div>
+      </section>
+
+      <SiteFooter />
+    </div>
+  </main>
+
+  <style>
+    .section-label {
+      display: inline-block;
+      margin: 32px 0 20px;
+      border-bottom: 3px solid var(--ink);
+      font-family: "ZCOOL KuaiLe", sans-serif;
+      font-size: 22px;
+      padding-bottom: 4px;
+    }
+
+    .contact-section,
+    .legal-section {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 56px;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 32px;
+      align-items: center;
+      border: 2.5px solid var(--ink);
+      border-radius: 20px;
+      background: var(--paper-deep);
+      box-shadow: 6px 6px 0 var(--ink);
+      padding: 28px 32px;
+    }
+
+    .contact-left {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .contact-intro {
+      margin: 0;
+      opacity: .85;
+      font-family: "Fraunces", serif;
+      font-size: 15px;
+      font-style: italic;
+      line-height: 1.8;
+    }
+
+    .contact-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .chip {
+      min-width: 160px;
+      border: 2.5px solid var(--ink);
+      border-radius: 14px;
+      box-shadow: 4px 4px 0 var(--ink);
+      padding: 14px 18px;
+      transition: box-shadow .2s;
+    }
+
+    .chip:hover {
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+
+    .issue-chip {
+      background: var(--pink-soft);
+    }
+
+    .pr-chip {
+      background: var(--blue-soft);
+    }
+
+    .chip-label {
+      margin-bottom: 4px;
+      opacity: .82;
+      color: var(--ink);
+      font-family: "Space Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .chip-value {
+      font-family: "Space Mono", monospace;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .chip-hint {
+      margin-top: 3px;
+      opacity: .55;
+      font-family: "Space Mono", monospace;
+      font-size: 11px;
+    }
+
+    .contact-right {
+      display: flex;
+      align-items: center;
+    }
+
+    .repo-link {
+      display: inline-flex;
+      align-items: center;
+      border: 2.5px solid var(--ink);
+      border-radius: 999px;
+      background: var(--blue);
+      box-shadow: 4px 4px 0 var(--ink);
+      color: #fff;
+      font-family: "ZCOOL KuaiLe", sans-serif;
+      font-size: 16px;
+      padding: 9px 22px;
+      text-decoration: none;
+      transition: transform .2s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
+      white-space: nowrap;
+    }
+
+    .repo-link:hover {
+      box-shadow: 6px 6px 0 var(--ink);
+      transform: translate(-2px, -2px);
+    }
+
+    .legal-card {
+      position: relative;
+      border: 2.5px solid var(--ink);
+      border-radius: 18px;
+      background: var(--green-soft);
+      box-shadow: 5px 5px 0 var(--ink);
+      font-size: 14.5px;
+      line-height: 1.9;
+      padding: 28px 32px;
+      transform: rotate(-0.4deg);
+    }
+
+    .legal-card p {
+      margin: 0 0 12px;
+    }
+
+    .legal-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .legal-sticker {
+      position: absolute;
+      top: -13px;
+      right: 26px;
+      border: 2px solid var(--ink);
+      border-radius: 6px;
+      background: var(--yellow);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-family: "Bagel Fat One", sans-serif;
+      font-size: 10px;
+      letter-spacing: .1em;
+      padding: 3px 8px;
+      transform: rotate(6deg);
+    }
+
+    @media (max-width: 1100px) {
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .legal-card {
+        transform: none;
+      }
+    }
+  </style>
+</BaseLayout>

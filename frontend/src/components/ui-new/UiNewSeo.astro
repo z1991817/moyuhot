@@ -1,0 +1,68 @@
+---
+import { absoluteUrl, DEFAULT_OG_IMAGE, jsonLd, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_URL } from "../../lib/seo";
+
+interface Props {
+  title?: string;
+  description?: string;
+  keywords?: string;
+  canonical?: string;
+  image?: string;
+  ogType?: "website" | "article";
+  robots?: string;
+  structuredData?: unknown | unknown[];
+}
+
+const {
+  title = SITE_NAME,
+  description = SITE_DESCRIPTION,
+  keywords = SITE_KEYWORDS,
+  canonical = "/ui-new/preview",
+  image = DEFAULT_OG_IMAGE,
+  ogType = "website",
+  robots = "index, follow, max-snippet:150, max-image-preview:large",
+  structuredData = [],
+} = Astro.props;
+
+const canonicalUrl = absoluteUrl(canonical);
+const imageUrl = absoluteUrl(image);
+const schemaItems = Array.isArray(structuredData) ? structuredData : [structuredData];
+const baseSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  inLanguage: "zh-CN",
+  publisher: {
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: {
+      "@type": "ImageObject",
+      url: DEFAULT_OG_IMAGE,
+    },
+  },
+};
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="keywords" content={keywords} />
+<meta name="robots" content={robots} />
+<meta name="theme-color" content="#ffffff" />
+<link rel="canonical" href={canonicalUrl} />
+<link rel="icon" type="image/svg+xml" href="/logo-orange-4-punch.svg" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:site_name" content={SITE_NAME} />
+<meta property="og:locale" content="zh_CN" />
+<meta property="og:image" content={imageUrl} />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+<script is:inline type="application/ld+json" set:html={jsonLd(baseSchema)} />
+{schemaItems.filter(Boolean).map((item) => <script is:inline type="application/ld+json" set:html={jsonLd(item)} />)}

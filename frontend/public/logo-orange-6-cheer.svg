@@ -1,0 +1,47 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="oDots" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
+      <rect width="7" height="7" fill="#FF6B2C"/>
+      <circle cx="3.5" cy="3.5" r="1.3" fill="#1A1714" opacity="0.22"/>
+    </pattern>
+  </defs>
+  <rect width="240" height="240" fill="#FFF4D6" rx="16"/>
+  <!-- 左鳍高举（蓝） -->
+  <path d="M 88 82 L 62 36 L 100 72 Z"
+        fill="#2540D9" stroke="#1A1714" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 右鳍高举（蓝） -->
+  <path d="M 152 82 L 178 36 L 140 72 Z"
+        fill="#2540D9" stroke="#1A1714" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 尾鳍 -->
+  <path d="M 105 178 L 84 204 L 118 182 L 152 204 L 135 178 Z"
+        fill="url(#oDots)" stroke="#1A1714" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- 鱼身（竖直，正面） -->
+  <path d="M 120 60 Q 162 68 166 110 Q 168 148 145 172
+           L 120 168 L 95 172
+           Q 72 148 74 110 Q 78 68 120 60 Z"
+        fill="url(#oDots)" stroke="#1A1714" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- 肚皮（浅色） -->
+  <ellipse cx="120" cy="128" rx="22" ry="28" fill="#FFC93C" opacity="0.3"/>
+  <!-- 左眼 -->
+  <circle cx="102" cy="92" r="9" fill="#1A1714"/>
+  <path d="M 100 87 L 101 90 L 104 91 L 101 92 L 100 95 L 99 92 L 96 91 L 99 90 Z" fill="#FFF4D6"/>
+  <!-- 右眼 -->
+  <circle cx="138" cy="92" r="9" fill="#1A1714"/>
+  <path d="M 136 87 L 137 90 L 140 91 L 137 92 L 136 95 L 135 92 L 132 91 L 135 90 Z" fill="#FFF4D6"/>
+  <!-- 大笑嘴 -->
+  <path d="M 104 112 Q 120 126 136 112" fill="none" stroke="#1A1714" stroke-width="3" stroke-linecap="round"/>
+  <!-- 腮红 -->
+  <circle cx="88" cy="108" r="5" fill="#FFC93C" opacity="0.7"/>
+  <circle cx="152" cy="108" r="5" fill="#FFC93C" opacity="0.7"/>
+  <!-- 头顶爆点 -->
+  <g transform="translate(120 46)">
+    <path d="M 0 -12 L 3 -3 L 12 0 L 3 3 L 0 12 L -3 3 L -12 0 L -3 -3 Z"
+          fill="#FFC93C" stroke="#1A1714" stroke-width="2"/>
+  </g>
+  <!-- 两侧小星 -->
+  <g fill="#FFC93C" stroke="#1A1714" stroke-width="1.5">
+    <path d="M 52 44 L 54 40 L 58 39 L 54 38 L 52 34 L 50 38 L 46 39 L 50 40 Z"/>
+    <path d="M 188 44 L 190 40 L 194 39 L 190 38 L 188 34 L 186 38 L 182 39 L 186 40 Z"/>
+  </g>
+  <text x="120" y="233" font-family="monospace" font-size="12" fill="#1A1714" text-anchor="middle" opacity="0.45">⑥ 欢呼</text>
+</svg>

@@ -1,0 +1,126 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="sf-inner">
+    <div class="sf-copy">
+      <span class="sf-stamp">© {year}</span>
+      <span class="sf-name">摸鱼热榜</span>
+    </div>
+
+    <div class="sf-disclaimer">
+      <p>本站仅聚合公开榜单标题与原站链接，点击后跳转至原网站。</p>
+      <p>内容版权归原平台及原作者所有。</p>
+      <p>美股大盘数据仅供信息展示，不构成投资建议。</p>
+    </div>
+
+    <div class="sf-meta">
+      <span>BUILT WITH ASTRO · FASTAPI</span>
+      <span class="sf-dot">·</span>
+      <span>NO COOKIES · NO TRACKING</span>
+      <span class="sf-dot">·</span>
+      <span>OPEN SOURCE</span>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 48px;
+    border-top: 2.5px solid var(--ink);
+    padding: 22px 0 32px;
+    position: relative;
+  }
+
+  .site-footer::before {
+    content: "";
+    display: block;
+    height: 1.5px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--ink) 0 8px,
+      transparent 8px 14px
+    );
+    margin-bottom: 20px;
+    opacity: 0.25;
+  }
+
+  .sf-inner {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+
+  .sf-copy {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .sf-stamp {
+    font-family: "Bagel Fat One", sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 3px 9px 4px;
+    border-radius: 6px;
+    border: 2px solid var(--ink);
+    transform: rotate(-2deg);
+    display: inline-block;
+    box-shadow: 2px 2px 0 var(--yellow);
+  }
+
+  .sf-name {
+    font-family: "ZCOOL KuaiLe", sans-serif;
+    font-size: 16px;
+    color: var(--ink);
+  }
+
+  .sf-disclaimer {
+    flex: 1;
+    min-width: 200px;
+    font-family: "Space Mono", monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+    font-weight: 700;
+  }
+
+  .sf-disclaimer p {
+    margin: 0;
+  }
+
+  .sf-meta {
+    font-family: "Space Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #8a7e72;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .sf-dot {
+    opacity: 0.4;
+  }
+
+  @media (max-width: 768px) {
+    .sf-inner {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .sf-stamp {
+      transform: none;
+    }
+  }
+</style>

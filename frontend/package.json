@@ -1,0 +1,32 @@
+{
+  "name": "moyu-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test:links": "tsc --outDir .tmp/link-tests --module NodeNext --moduleResolution NodeNext --target ES2022 --strict src/lib/cn-market-links.ts tests/cn-market-links.test.ts && node .tmp/link-tests/tests/cn-market-links.test.js"
+  },
+  "dependencies": {
+    "astro": "^5.13.0",
+    "dompurify": "^3.4.7",
+    "marked": "^18.0.4",
+    "sortablejs": "^1.15.7"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/node": "^9.4.0",
+    "@types/sortablejs": "^1.15.9",
+    "typescript": "^5.9.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  }
+}

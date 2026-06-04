@@ -1,0 +1,119 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="ui-new-footer">
+  <div class="ui-new-footer-inner">
+    <div class="ui-new-footer-copy">
+      <span class="ui-new-footer-year">© {year}</span>
+      <span class="ui-new-footer-name">摸鱼热榜</span>
+    </div>
+
+    <div class="ui-new-footer-disclaimer">
+      <p>本站仅聚合公开榜单标题与原站链接，点击后跳转至原网站。</p>
+      <p>内容版权归原平台及原作者所有。</p>
+      <p>市场行情数据仅供信息展示，不构成投资建议。</p>
+    </div>
+
+    <div class="ui-new-footer-meta">
+      <span>BUILT WITH ASTRO · FASTAPI</span>
+      <span class="ui-new-footer-dot">·</span>
+      <span>NO COOKIES · NO TRACKING</span>
+      <span class="ui-new-footer-dot">·</span>
+      <span>OPEN SOURCE</span>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .ui-new-footer {
+    margin-top: 34px;
+    border-top: 1px solid var(--border, #eaeaea);
+    background: var(--background, #ffffff);
+    color: var(--text-secondary, #525252);
+  }
+
+  .ui-new-footer-inner {
+    display: grid;
+    grid-template-columns: auto minmax(220px, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 22px 24px 30px;
+  }
+
+  .ui-new-footer-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: max-content;
+  }
+
+  .ui-new-footer-year {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    border: 1px solid var(--border, #eaeaea);
+    border-radius: var(--radius-md, 6px);
+    background: var(--surface-elevated, #ffffff);
+    color: var(--text-primary, #171717);
+    font-size: 12px;
+    font-weight: 650;
+    padding: 0 8px;
+  }
+
+  .ui-new-footer-name {
+    color: var(--text-primary, #171717);
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .ui-new-footer-disclaimer {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    color: var(--text-secondary, #525252);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .ui-new-footer-disclaimer p {
+    margin: 0;
+  }
+
+  .ui-new-footer-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    color: var(--text-tertiary, #8f8f8f);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  .ui-new-footer-dot {
+    opacity: 0.52;
+  }
+
+  @media (max-width: 860px) {
+    .ui-new-footer-inner {
+      grid-template-columns: 1fr;
+      align-items: start;
+      gap: 12px;
+    }
+
+    .ui-new-footer-meta {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .ui-new-footer-inner {
+      padding: 20px 16px 26px;
+    }
+  }
+</style>

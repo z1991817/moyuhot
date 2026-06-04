@@ -1,0 +1,80 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: moyu-api:latest
+    environment:
+      SEESEA_BASE_URL: ${SEESEA_BASE_URL:-http://host.docker.internal:18080}
+      CHAT_GATEWAY_BASE_URL: ${CHAT_GATEWAY_BASE_URL:-https://api.freetheai.xyz/v1}
+      CHAT_GATEWAY_API_KEY: ${CHAT_GATEWAY_API_KEY:-}
+      CHAT_GATEWAY_DEFAULT_MODEL: ${CHAT_GATEWAY_DEFAULT_MODEL:-fee/deepseek-v4-pro}
+      CHAT_GATEWAY_MODELS: ${CHAT_GATEWAY_MODELS:-fee/deepseek-v4-pro,fee/kimi-k2.6,opc/qwen3.6-plus-free,glm/glm-5,glm/glm-5.1,opc/minimax-m3-free,bbl/gpt-5.4-mini}
+      CHAT_GATEWAY_WEB_SEARCH_ENABLED: ${CHAT_GATEWAY_WEB_SEARCH_ENABLED:-false}
+    ports:
+      - "${MOYU_API_PORT:-127.0.0.1:18000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - moyu_api_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).status==200 else 1)\""]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    restart: unless-stopped
+
+  cn-market-refresh:
+    image: moyu-api:latest
+    environment:
+      CACHE_DB_PATH: /app/data/cache.db
+    volumes:
+      - moyu_api_data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+    command: >
+      python -c "from app.jobs.refresh_cn_market import loop_main; loop_main()"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        API_BASE: http://api:8000/api
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://moyuhot.com}
+    image: moyu-frontend:latest
+    environment:
+      API_BASE: http://api:8000/api
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://moyuhot.com}
+      TZ: Asia/Shanghai  
+    ports:
+      - "${MOYU_FRONTEND_PORT:-127.0.0.1:14321}:4321"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4321/ >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${MOYU_NGINX_PORT:-127.0.0.1:18081}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  moyu_api_data:

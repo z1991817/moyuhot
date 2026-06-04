@@ -1,0 +1,46 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="oDots" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
+      <rect width="7" height="7" fill="#FF6B2C"/>
+      <circle cx="3.5" cy="3.5" r="1.3" fill="#1A1714" opacity="0.22"/>
+    </pattern>
+  </defs>
+  <rect width="240" height="240" fill="#FFF4D6" rx="16"/>
+  <!-- 旋转弧线 -->
+  <g fill="none" stroke="#1A1714" stroke-width="3" stroke-linecap="round">
+    <path d="M 56 60 A 80 80 0 0 1 180 48"/>
+    <path d="M 184 192 A 80 80 0 0 1 60 180"/>
+  </g>
+  <!-- 弧线箭头 -->
+  <polygon points="180,48 172,38 170,54" fill="#1A1714"/>
+  <polygon points="60,180 68,190 70,174" fill="#1A1714"/>
+  <g transform="rotate(-12 120 115)">
+    <!-- 尾鳍 -->
+    <path d="M 55 100 L 18 76 L 46 106 L 18 136 L 55 120 Z"
+          fill="url(#oDots)" stroke="#1A1714" stroke-width="3.5" stroke-linejoin="round"/>
+    <!-- 背鳍（蓝） -->
+    <path d="M 110 72 L 130 48 L 148 70 Z"
+          fill="#2540D9" stroke="#1A1714" stroke-width="3" stroke-linejoin="round"/>
+    <!-- 鱼身 -->
+    <path d="M 198 88 Q 212 78 202 66 Q 178 52 142 58 Q 100 64 72 82
+             Q 54 94 52 106 Q 54 118 72 128 Q 104 138 144 134
+             Q 180 130 200 118 Q 212 108 198 88 Z"
+          fill="url(#oDots)" stroke="#1A1714" stroke-width="3.5" stroke-linejoin="round"/>
+    <!-- 鳍（蓝） -->
+    <path d="M 138 120 L 152 142 L 162 120 Z"
+          fill="#2540D9" stroke="#1A1714" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- 眼（晕眩螺旋） -->
+    <circle cx="178" cy="86" r="10" fill="#FFF4D6" stroke="#1A1714" stroke-width="2.5"/>
+    <path d="M 175 86 Q 178 82 181 86 Q 178 90 175 86" fill="none" stroke="#1A1714" stroke-width="2" stroke-linecap="round"/>
+    <!-- 笑 -->
+    <path d="M 190 102 Q 198 108 206 102" fill="none" stroke="#1A1714" stroke-width="2.8" stroke-linecap="round"/>
+    <!-- 腮红 -->
+    <circle cx="165" cy="106" r="5" fill="#FFC93C" opacity="0.7"/>
+  </g>
+  <!-- 小星星散落 -->
+  <g fill="#FFC93C" stroke="#1A1714" stroke-width="1.5">
+    <path d="M 42 120 L 44 116 L 48 115 L 44 114 L 42 110 L 40 114 L 36 115 L 40 116 Z"/>
+    <path d="M 196 168 L 198 164 L 202 163 L 198 162 L 196 158 L 194 162 L 190 163 L 194 164 Z"/>
+  </g>
+  <text x="120" y="233" font-family="monospace" font-size="12" fill="#1A1714" text-anchor="middle" opacity="0.45">⑤ 旋转</text>
+</svg>

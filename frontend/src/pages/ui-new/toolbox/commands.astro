@@ -1,0 +1,145 @@
+---
+import UiNewSeo from "../../../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../../../components/ui-new/UiNewFooter.astro";
+import UiNewTopBar from "../../../components/ui-new/UiNewTopBar.astro";
+import CommandsContent from "../../../components/ui-new/commands/CommandsContent.astro";
+import CommandsSidebar from "../../../components/ui-new/commands/CommandsSidebar.astro";
+import { aiCommandTools } from "../../../lib/ai-tool-commands";
+import { SITE_NAME, SITE_URL } from "../../../lib/seo";
+
+const pageTitle = "命令手册 - AI 工具指令速查 | 摸鱼热榜";
+const pageDescription = "Claude Code、Codex、Cursor 等 AI 编程工具的常用命令与斜杠指令速查手册。";
+const toolOrder = [
+  "claude-code",
+  "codex",
+  "gemini-cli",
+  "cursor",
+  "cline",
+  "continue",
+  "openhands",
+  "aider",
+  "windsurf",
+  "github-copilot",
+  "cherry-studio",
+  "openclaw",
+  "hermes",
+] as const;
+const toolOrderMap = new Map<string, number>(toolOrder.map((id, index) => [id, index]));
+const orderedAiCommandTools = [...aiCommandTools].sort((a, b) => {
+  return (toolOrderMap.get(a.id) ?? aiCommandTools.length) - (toolOrderMap.get(b.id) ?? aiCommandTools.length);
+});
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/ui-new/toolbox/commands" structuredData={{
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      name: pageTitle,
+      url: `${SITE_URL}/ui-new/toolbox/commands`,
+      description: pageDescription,
+      inLanguage: "zh-CN",
+      isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
+    }} />
+    <script is:inline>
+      (() => {
+        try {
+          const savedSkin = localStorage.getItem("trend-skin") || "dim";
+          document.documentElement.dataset.skin = savedSkin === "dim" ? "dim" : "";
+        } catch {
+          document.documentElement.dataset.skin = "dim";
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/commands.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <UiNewTopBar active="toolbox-commands" />
+
+      <div class="commands-layout">
+        <CommandsSidebar tools={orderedAiCommandTools} />
+        <CommandsContent tools={orderedAiCommandTools} />
+      </div>
+
+      <UiNewFooter />
+    </div>
+
+    <script is:inline>
+      (() => {
+        const content = document.getElementById("commands-content");
+        const navItems = Array.from(document.querySelectorAll(".tool-nav-item"));
+        const sections = Array.from(document.querySelectorAll("[data-tool-section]"));
+
+        function setActive(id) {
+          navItems.forEach((item) => {
+            item.classList.toggle("is-active", item.dataset.toolId === id);
+          });
+        }
+
+        function contentCanScroll() {
+          return content && content.scrollHeight > content.clientHeight + 1;
+        }
+
+        function scrollToSection(target) {
+          const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const behavior = reduceMotion ? "auto" : "smooth";
+
+          if (contentCanScroll()) {
+            const contentTop = content.getBoundingClientRect().top;
+            const targetTop = target.getBoundingClientRect().top;
+            content.scrollTo({
+              top: content.scrollTop + targetTop - contentTop,
+              behavior,
+            });
+            return;
+          }
+
+          window.scrollTo({
+            top: window.scrollY + target.getBoundingClientRect().top - 74,
+            behavior,
+          });
+        }
+
+        // Intersection observer for auto-highlight
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                setActive(entry.target.dataset.toolSection);
+              }
+            });
+          },
+          contentCanScroll()
+            ? { root: content, rootMargin: "-12% 0px -78% 0px" }
+            : { rootMargin: "-20% 0px -70% 0px" }
+        );
+
+        sections.forEach((section) => observer.observe(section));
+
+        // Click nav item
+        navItems.forEach((item) => {
+          item.addEventListener("click", (e) => {
+            e.preventDefault();
+            const id = item.dataset.toolId;
+            const target = document.getElementById(id);
+            if (target) {
+              setActive(id);
+              scrollToSection(target);
+              history.replaceState(null, "", `#${id}`);
+            }
+          });
+        });
+
+        // Set first active
+        if (sections.length > 0) {
+          setActive(sections[0].dataset.toolSection);
+        }
+      })();
+    </script>
+  </body>
+</html>

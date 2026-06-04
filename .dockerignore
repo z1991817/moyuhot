@@ -1,0 +1,12 @@
+.git
+.ruff_cache
+.scratch
+frontend/node_modules
+frontend/dist
+frontend/.astro
+backend/.venv
+backend/.pytest_cache
+backend/.ruff_cache
+backend/data
+**/__pycache__
+*.log

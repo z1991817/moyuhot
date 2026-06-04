@@ -1,0 +1,522 @@
+---
+type NavItem = {
+  href: string;
+  label: string;
+  id: string;
+  description?: string;
+  children?: NavItem[];
+};
+
+type Props = {
+  active: "home" | "finance" | "about" | string;
+};
+
+const { active } = Astro.props;
+
+const navItems: NavItem[] = [
+  { href: "/", label: "首页", id: "home" },
+  { href: "/ui-new/chat", label: "AI 助手", id: "chat" },
+  {
+    href: "/ui-new/finance",
+    label: "理财",
+    id: "finance",
+    children: [
+      { href: "/ui-new/a-share", label: "A股", id: "a-share", description: "沪深行情与市场分析" },
+      { href: "/ui-new/finance", label: "美股", id: "finance", description: "三大指数与热门个股" },
+    ],
+  },
+  {
+    href: "/ui-new/toolbox/commands",
+    label: "工具箱",
+    id: "toolbox",
+    children: [
+      { href: "/ui-new/toolbox/commands", label: "命令手册", id: "toolbox-commands", description: "AI 工具常用指令速查" },
+    ],
+  },
+  { href: "/ui-new/about", label: "关于", id: "about" },
+];
+---
+
+<header class="ui-new-topbar">
+  <div class="ui-new-topbar-inner">
+    <a class="ui-new-brand" href="/" aria-label="返回摸鱼热榜首页">
+      <span class="ui-new-brand-mark">M</span>
+    </a>
+
+    <nav class="ui-new-nav" aria-label="主导航">
+      {navItems.map((item) => {
+        const isActive = active === item.id || Boolean(item.children?.some((child) => child.id === active));
+        if (item.children) {
+          return (
+            <div class="ui-new-nav-group" data-ui-new-nav-group>
+              <a
+                class:list={[{ active: isActive }]}
+                href={item.href}
+                aria-current={active === item.id ? "page" : undefined}
+                aria-haspopup="menu"
+                aria-expanded="false"
+                data-ui-new-nav-trigger
+              >
+                {item.label}
+                <svg class="ui-new-nav-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M4.5 6.5 8 10l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </a>
+              <div class="ui-new-nav-menu" role="menu" aria-label={item.label} data-ui-new-nav-menu>
+                {item.children.map((child) => (
+                  <a class:list={[{ active: active === child.id }]} href={child.href} role="menuitem">
+                    <span>{child.label}</span>
+                    {child.description && <small>{child.description}</small>}
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        return (
+          <a class:list={[{ active: isActive }]} href={item.href} aria-current={isActive ? "page" : undefined}>
+            {item.label}
+          </a>
+        );
+      })}
+    </nav>
+
+    <div class="ui-new-topbar-spacer"></div>
+
+    <button class="ui-new-mobile-menu-toggle" type="button" aria-label="打开导航菜单" aria-expanded="false" title="打开导航菜单" data-ui-new-mobile-menu-toggle>
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+      </svg>
+    </button>
+
+    {active === "home" && (
+      <button class="ui-new-home-settings-toggle" type="button" aria-label="打开首页设置" title="首页设置" data-settings-open>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.6a1.45 1.45 0 0 0-1.39 1.03l-.28.92a1.25 1.25 0 0 1-.72.78l-.12.05a1.25 1.25 0 0 1-1.07-.05l-.86-.43a1.45 1.45 0 0 0-1.72.29l-.65.65a1.45 1.45 0 0 0-.29 1.72l.43.86c.17.34.19.73.05 1.07l-.05.12a1.25 1.25 0 0 1-.78.72l-.92.28A1.45 1.45 0 0 0 3.6 12c0 .64.42 1.2 1.03 1.39l.92.28c.35.11.64.37.78.72l.05.12c.14.34.12.73-.05 1.07l-.43.86a1.45 1.45 0 0 0 .29 1.72l.65.65c.46.46 1.16.57 1.72.29l.86-.43c.34-.17.73-.19 1.07-.05l.12.05c.35.14.61.43.72.78l.28.92A1.45 1.45 0 0 0 12 20.4c.64 0 1.2-.42 1.39-1.03l.28-.92c.11-.35.37-.64.72-.78l.12-.05c.34-.14.73-.12 1.07.05l.86.43c.57.28 1.26.17 1.72-.29l.65-.65c.46-.46.57-1.16.29-1.72l-.43-.86a1.25 1.25 0 0 1-.05-1.07l.05-.12c.14-.35.43-.61.78-.72l.92-.28A1.45 1.45 0 0 0 20.4 12c0-.64-.42-1.2-1.03-1.39l-.92-.28a1.25 1.25 0 0 1-.78-.72l-.05-.12a1.25 1.25 0 0 1 .05-1.07l.43-.86a1.45 1.45 0 0 0-.29-1.72l-.65-.65a1.45 1.45 0 0 0-1.72-.29l-.86.43c-.34.17-.73.19-1.07.05l-.12-.05a1.25 1.25 0 0 1-.72-.78l-.28-.92A1.45 1.45 0 0 0 12 3.6Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.75" />
+        </svg>
+      </button>
+    )}
+
+    <button class="ui-new-theme-toggle" type="button" aria-label="切换暗色主题" title="切换暗色主题" data-ui-new-theme-toggle>
+      <svg class="ui-new-theme-icon ui-new-theme-icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M20.2 15.5A8.4 8.4 0 0 1 8.5 3.8 8.9 8.9 0 1 0 20.2 15.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M16.5 4.5l.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5.5-1.4Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" />
+      </svg>
+      <svg class="ui-new-theme-icon ui-new-theme-icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8" />
+        <path d="M12 2.8v2M12 19.2v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.8 12h2M19.2 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </button>
+  </div>
+
+  <nav class="ui-new-mobile-nav" aria-label="移动端主导航" hidden data-ui-new-mobile-nav>
+    <a class:list={[{ active: active === "home" }]} href="/">首页</a>
+    <a class:list={[{ active: active === "chat" }]} href="/ui-new/chat">AI 助手</a>
+    <a class:list={[{ active: active === "a-share" }]} href="/ui-new/a-share">A股</a>
+    <a class:list={[{ active: active === "finance" }]} href="/ui-new/finance">美股</a>
+    <a class:list={[{ active: active === "toolbox" || active === "toolbox-commands" }]} href="/ui-new/toolbox/commands">工具箱</a>
+    <a class:list={[{ active: active === "about" }]} href="/ui-new/about">关于</a>
+  </nav>
+</header>
+
+<script is:inline>
+  (() => {
+    const themeToggle = document.querySelector("[data-ui-new-theme-toggle]");
+    const moonIcon = document.querySelector(".ui-new-theme-icon-moon");
+    const sunIcon = document.querySelector(".ui-new-theme-icon-sun");
+    if (!themeToggle || !moonIcon || !sunIcon) return;
+
+    function setSkin(skin) {
+      const nextSkin = skin === "dim" ? "dim" : "vercel";
+      document.documentElement.dataset.skin = nextSkin === "vercel" ? "" : nextSkin;
+      themeToggle.classList.toggle("is-dim", nextSkin === "dim");
+      moonIcon.dataset.visible = nextSkin === "dim" ? "false" : "true";
+      sunIcon.dataset.visible = nextSkin === "dim" ? "true" : "false";
+      themeToggle.setAttribute("aria-label", nextSkin === "dim" ? "切换亮色主题" : "切换暗色主题");
+      themeToggle.setAttribute("title", nextSkin === "dim" ? "切换亮色主题" : "切换暗色主题");
+      localStorage.setItem("trend-skin", nextSkin);
+    }
+
+    const savedSkin = localStorage.getItem("trend-skin") || "dim";
+    setSkin(savedSkin);
+    themeToggle.addEventListener("click", () => {
+      const currentSkin = document.documentElement.dataset.skin === "dim" ? "dim" : "vercel";
+      setSkin(currentSkin === "dim" ? "vercel" : "dim");
+    });
+
+    const mobileMenuToggle = document.querySelector("[data-ui-new-mobile-menu-toggle]");
+    const mobileNav = document.querySelector("[data-ui-new-mobile-nav]");
+
+    function setMobileNavOpen(open) {
+      if (!mobileMenuToggle || !mobileNav) return;
+      mobileNav.hidden = !open;
+      mobileNav.dataset.open = open ? "true" : "false";
+      mobileMenuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      mobileMenuToggle.setAttribute("aria-label", open ? "关闭导航菜单" : "打开导航菜单");
+      mobileMenuToggle.setAttribute("title", open ? "关闭导航菜单" : "打开导航菜单");
+    }
+
+    mobileMenuToggle?.addEventListener("click", () => {
+      setMobileNavOpen(mobileNav?.hidden !== false);
+    });
+    mobileNav?.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => setMobileNavOpen(false));
+    });
+
+    document.querySelectorAll("[data-ui-new-nav-group]").forEach((group) => {
+      const trigger = group.querySelector("[data-ui-new-nav-trigger]");
+      let closeTimer;
+
+      function setOpen(open) {
+        window.clearTimeout(closeTimer);
+        group.dataset.open = open ? "true" : "false";
+        trigger?.setAttribute("aria-expanded", open ? "true" : "false");
+      }
+
+      trigger?.addEventListener("click", (event) => {
+        if (group.dataset.open !== "true") {
+          event.preventDefault();
+          setOpen(true);
+        }
+      });
+      group.addEventListener("pointerenter", () => setOpen(true));
+      group.addEventListener("pointerleave", () => {
+        closeTimer = window.setTimeout(() => setOpen(false), 90);
+      });
+      group.addEventListener("mouseover", () => setOpen(true));
+      group.addEventListener("mouseout", (event) => {
+        if (!group.contains(event.relatedTarget)) {
+          closeTimer = window.setTimeout(() => setOpen(false), 90);
+        }
+      });
+      group.addEventListener("focusin", () => setOpen(true));
+      group.addEventListener("focusout", (event) => {
+        if (!group.contains(event.relatedTarget)) setOpen(false);
+      });
+    });
+  })();
+</script>
+
+<style>
+  .ui-new-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--topbar-bg);
+    backdrop-filter: blur(12px);
+  }
+
+  .ui-new-topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    max-width: 1240px;
+    height: 58px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .ui-new-brand {
+    display: flex;
+    align-items: center;
+    min-width: max-content;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .ui-new-brand-mark {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .ui-new-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ui-new-nav a,
+  .ui-new-nav-group > a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    text-decoration: none;
+    transition: color 120ms ease, background-color 120ms ease;
+    white-space: nowrap;
+  }
+
+  .ui-new-nav a:hover,
+  .ui-new-nav-group:hover > a,
+  .ui-new-nav-group:focus-within > a {
+    color: var(--text-primary);
+    background: var(--muted-background);
+  }
+
+  .ui-new-nav a.active,
+  .ui-new-nav-group > a.active {
+    color: var(--text-primary);
+    font-weight: 650;
+  }
+
+  .ui-new-nav a.active::after,
+  .ui-new-nav-group > a.active::after {
+    position: absolute;
+    right: 10px;
+    bottom: 2px;
+    left: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    content: "";
+  }
+
+  .ui-new-nav-group {
+    position: relative;
+    padding: 10px 0;
+  }
+
+  .ui-new-nav-chevron {
+    width: 13px;
+    height: 13px;
+    color: var(--text-tertiary);
+    transition: transform 140ms ease;
+  }
+
+  .ui-new-nav-group:hover .ui-new-nav-chevron,
+  .ui-new-nav-group:focus-within .ui-new-nav-chevron,
+  .ui-new-nav-group[data-open="true"] .ui-new-nav-chevron {
+    transform: rotate(180deg);
+  }
+
+  .ui-new-nav-menu {
+    position: absolute;
+    top: calc(100% - 4px);
+    left: 0;
+    z-index: 20;
+    display: grid;
+    min-width: 216px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-elevated);
+    box-shadow: 0 12px 30px rgb(0 0 0 / 10%);
+    opacity: 0;
+    padding: 6px;
+    pointer-events: none;
+    transform: translateY(-4px) scale(0.98);
+    transform-origin: top left;
+    transition:
+      opacity 140ms ease,
+      transform 140ms ease;
+  }
+
+  .ui-new-nav-group:hover .ui-new-nav-menu,
+  .ui-new-nav-group:focus-within .ui-new-nav-menu,
+  .ui-new-nav-group[data-open="true"] .ui-new-nav-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+
+  .ui-new-nav-menu a {
+    display: grid;
+    gap: 2px;
+    border-radius: var(--radius-md);
+    padding: 9px 10px;
+  }
+
+  .ui-new-nav-menu a::after {
+    display: none;
+  }
+
+  .ui-new-nav-menu a small {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .ui-new-nav-menu a.active {
+    background: var(--muted-background);
+  }
+
+  .ui-new-topbar-spacer {
+    flex: 1;
+  }
+
+  .ui-new-mobile-menu-toggle {
+    display: none;
+    width: 36px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .ui-new-mobile-menu-toggle:hover {
+    border-color: var(--border-light);
+    background: var(--muted-background);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+  }
+
+  .ui-new-mobile-menu-toggle:focus-visible {
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
+
+  .ui-new-mobile-menu-toggle svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .ui-new-mobile-nav {
+    display: none;
+  }
+
+  .ui-new-home-settings-toggle,
+  .ui-new-theme-toggle {
+    position: relative;
+    display: grid;
+    width: 36px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .ui-new-home-settings-toggle:hover,
+  .ui-new-theme-toggle:hover {
+    border-color: var(--border-light);
+    background: var(--muted-background);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+  }
+
+  .ui-new-home-settings-toggle:focus-visible,
+  .ui-new-theme-toggle:focus-visible {
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
+
+  .ui-new-home-settings-toggle svg {
+    display: block;
+    width: 17px;
+    height: 17px;
+  }
+
+  .ui-new-theme-icon {
+    position: absolute;
+    width: 17px;
+    height: 17px;
+    transition: opacity 160ms ease, transform 180ms ease;
+  }
+
+  .ui-new-theme-icon-sun {
+    opacity: 0;
+    transform: rotate(-22deg) scale(0.72);
+  }
+
+  .ui-new-theme-icon[data-visible="false"] {
+    opacity: 0;
+    transform: rotate(22deg) scale(0.72);
+  }
+
+  .ui-new-theme-icon[data-visible="true"] {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+
+  .ui-new-theme-toggle.is-dim .ui-new-theme-icon-moon {
+    opacity: 0;
+    transform: rotate(22deg) scale(0.72);
+  }
+
+  .ui-new-theme-toggle.is-dim .ui-new-theme-icon-sun {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+
+  @media (max-width: 760px) {
+    .ui-new-nav {
+      display: none;
+    }
+
+    .ui-new-topbar-inner {
+      height: auto;
+      gap: 10px;
+      padding: 12px 16px;
+    }
+
+    .ui-new-brand {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ui-new-topbar-spacer {
+      display: none;
+    }
+
+    .ui-new-mobile-menu-toggle {
+      display: grid;
+    }
+
+    .ui-new-mobile-nav {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      border-top: 1px solid var(--border-light);
+      background: var(--topbar-bg);
+      padding: 8px 16px 10px;
+    }
+
+    .ui-new-mobile-nav[hidden] {
+      display: none;
+    }
+
+    .ui-new-mobile-nav a {
+      display: inline-flex;
+      min-height: 34px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-elevated);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 650;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .ui-new-mobile-nav a.active {
+      background: var(--muted-background);
+      color: var(--text-primary);
+    }
+  }
+</style>

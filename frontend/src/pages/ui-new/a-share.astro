@@ -1,0 +1,393 @@
+---
+import UiNewSeo from "../../components/ui-new/UiNewSeo.astro";
+import UiNewFooter from "../../components/ui-new/UiNewFooter.astro";
+import UiNewTopBar from "../../components/ui-new/UiNewTopBar.astro";
+import { fetchCnMarket } from "../../lib/api";
+import { cnSectorUrl, cnStockUrl, sinaIndexUrl } from "../../lib/cn-market-links";
+import { SITE_NAME, SITE_URL } from "../../lib/seo";
+import type {
+  CnActiveStock,
+  CnMarketBreadth,
+  CnMarketIndex,
+  CnMarketResponse,
+  CnMarketStock,
+  CnRangeStock,
+  CnSectorTrend,
+} from "../../lib/types";
+
+const nowIso = new Date().toISOString();
+const today = nowIso.slice(0, 10);
+
+const fallbackMarket: CnMarketResponse = {
+  indices: [],
+  stocks: [],
+  analysis: {
+    marketBreadth: [],
+    fundFlows: [],
+    limitUp: [],
+    limitDown: [],
+    topGainers: [],
+    topLosers: [],
+    activeStocks: [],
+    sectorTrends: [],
+  },
+  source: "opentdx",
+  dataDate: today,
+  marketStatus: "closed",
+  stale: true,
+  staleReason: "NO_CN_MARKET_SNAPSHOT",
+  updatedAt: nowIso,
+};
+
+const marketData = await Promise.race([
+  fetchCnMarket(),
+  new Promise<CnMarketResponse>((resolve) => {
+    setTimeout(() => resolve(fallbackMarket), 1500);
+  }),
+]).catch(() => fallbackMarket);
+
+const indices = marketData.indices;
+const stocks = marketData.stocks;
+const marketBreadth = marketData.analysis.marketBreadth;
+const topGainers = marketData.analysis.topGainers;
+const topLosers = marketData.analysis.topLosers;
+const activeStocks = marketData.analysis.activeStocks;
+const sectorTrends = marketData.analysis.sectorTrends;
+const updatedAt = marketData.updatedAt || nowIso;
+const disclaimer =
+  indices[0]?.disclaimer || stocks[0]?.disclaimer || "行情仅供查看，不构成投资建议";
+const pageTitle = "A股行情 - 大盘指数与热门股票 | 摸鱼热榜";
+const pageDescription = "查看 A股大盘指数、成交活跃股票、市场广度、涨跌幅榜和板块风向。";
+
+function formatSigned(value: number): string {
+  const fixed = Math.abs(value).toFixed(2);
+  return value >= 0 ? `+${fixed}` : `-${fixed}`;
+}
+
+function formatPercent(value: number): string {
+  return `${formatSigned(value)}%`;
+}
+
+function formatPrice(value: number): string {
+  return value.toLocaleString("zh-CN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatNumericValue(value: string): string {
+  const normalized = value.trim().replaceAll(",", "");
+  if (!/^[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?$/i.test(normalized)) return value;
+  const numericValue = Number(normalized);
+  if (!Number.isFinite(numericValue)) return value;
+  return numericValue.toLocaleString("zh-CN", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  });
+}
+
+function formatTenThousandYuan(value: string): string {
+  const normalized = value.trim().replaceAll(",", "");
+  if (!/^[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?$/i.test(normalized)) return value;
+  const numericValue = Number(normalized);
+  if (!Number.isFinite(numericValue)) return value;
+  return (numericValue / 10000).toLocaleString("zh-CN", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+    useGrouping: false,
+  });
+}
+
+function formatUpdatedTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function movementClass(item: CnMarketIndex | CnMarketStock | CnActiveStock | CnRangeStock | CnSectorTrend): string {
+  return item.changePct >= 0 ? "is-up" : "is-down";
+}
+
+function marketStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    auction: "集合竞价",
+    closed: "休市",
+    lunch: "午间休市",
+    preopen: "未开盘",
+    trading: "交易中",
+  };
+  return labels[status] ?? status;
+}
+
+function staleReasonLabel(reason: string | null): string {
+  const labels: Record<string, string> = {
+    CN_MARKET_CACHE_EXPIRED: "缓存已过期，正在等待下一次完整快照",
+    CN_MARKET_INCOMPLETE_SNAPSHOT: "本次 TDX 快照不完整，已保留上一份完整数据",
+    CN_MARKET_REFRESH_FAILED: "TDX 行情刷新失败，已保留上一份完整数据",
+    CN_MARKET_REFRESH_TIMEOUT: "TDX 行情刷新超时，已保留上一份完整数据",
+    NO_CN_MARKET_SNAPSHOT: "暂时没有可用的 A 股完整快照",
+  };
+  if (!reason) return "数据延迟";
+  return labels[reason] ?? reason;
+}
+
+function sparkPoints(seed: string, up: boolean): string {
+  const total = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const points = Array.from({ length: 8 }, (_, index) => {
+    const x = index * 18;
+    const wave = Math.sin((total + index * 17) / 11) * 9;
+    const slope = up ? 27 - index * 2.6 : 17 + index * 2.4;
+    const y = Math.max(8, Math.min(42, slope + wave));
+    return `${x},${y.toFixed(1)}`;
+  });
+  return points.join(" ");
+}
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: pageTitle,
+  url: `${SITE_URL}/ui-new/a-share`,
+  description: pageDescription,
+  inLanguage: "zh-CN",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  about: ["A股行情", "大盘指数", "成交活跃股票", "市场广度", "涨幅靠前", "跌幅靠前"],
+  hasPart: [
+    {
+      "@type": "ItemList",
+      name: "A股大盘指数",
+      numberOfItems: indices.length,
+      itemListElement: indices.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: item.name,
+        url: sinaIndexUrl(item.symbol),
+      })),
+    },
+    {
+      "@type": "ItemList",
+      name: "A股成交活跃股票",
+      numberOfItems: stocks.length,
+      itemListElement: stocks.slice(0, 20).map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: `${item.name} ${item.symbol}`,
+        url: cnStockUrl(item),
+      })),
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <UiNewSeo title={pageTitle} description={pageDescription} canonical="/ui-new/a-share" structuredData={structuredData} />
+    <link rel="stylesheet" href="/ui-new/base.css" />
+    <link rel="stylesheet" href="/ui-new/a-share.css" />
+  </head>
+  <body>
+    <div class="market-shell">
+      <UiNewTopBar active="a-share" />
+
+      <main class="market-layout">
+        <header class="market-hero">
+          <div class="hero-copy">
+            <h1>A股行情</h1>
+            <!-- <p>同源 TDX 快照展示大盘、活跃股票、市场广度、涨跌幅榜和板块风向。</p> -->
+          </div>
+          <div class="market-meta" aria-label="行情数据状态">
+            <span>{marketStatusLabel(marketData.marketStatus)}</span>
+            <!-- <span>{marketData.source}</span>
+            <span>{marketData.dataDate}</span> -->
+            <span>刷新 {formatUpdatedTime(updatedAt)}</span>
+          </div>
+        </header>
+
+        {marketData.stale && (
+          <div class="stale-banner" role="status">
+            <strong>数据延迟</strong>
+            <span>{staleReasonLabel(marketData.staleReason)}</span>
+          </div>
+        )}
+
+        <section class="index-section" aria-labelledby="indices-title">
+          <div class="section-head">
+            <div>
+              <h2 id="indices-title">大盘指数</h2>
+            </div>
+          </div>
+
+          {indices.length > 0 ? (
+            <div class="index-grid">
+              {indices.map((item) => {
+                const up = item.changePct >= 0;
+                return (
+                  <a class:list={["index-card", movementClass(item)]} href={sinaIndexUrl(item.symbol)} target="_blank" rel="noopener noreferrer">
+                    <div class="index-card-head">
+                      <span class="symbol">{item.symbol}</span>
+                      <span>{up ? "上涨" : "下跌"}</span>
+                    </div>
+                    <h3>{item.name}</h3>
+                    <div class="index-price">{formatPrice(item.price)}</div>
+                    <div class="delta-row">
+                      <span>{up ? "▲" : "▼"} {formatSigned(item.change)}</span>
+                      <strong>{formatPercent(item.changePct)}</strong>
+                    </div>
+                    <svg class="sparkline" viewBox="0 0 126 52" preserveAspectRatio="none" aria-hidden="true">
+                      <polyline points={sparkPoints(item.symbol, up)} />
+                    </svg>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div class="empty-panel">暂时还没有大盘指数。</div>
+          )}
+        </section>
+
+        <section class="stocks-section" aria-labelledby="stocks-title">
+          <div class="section-head compact">
+            <div>
+              <h2 id="stocks-title">成交活跃股票</h2>
+            </div>
+          </div>
+
+          {stocks.length > 0 ? (
+            <div class="stock-table ui-scrollbar" role="table" aria-label="A股成交活跃股票">
+              <div class="stock-row stock-row-head" role="row">
+                <span role="columnheader">股票</span>
+                <span role="columnheader">最新价</span>
+                <span role="columnheader">涨跌额</span>
+                <span role="columnheader">涨跌幅</span>
+                <span role="columnheader">成交额（万元）</span>
+                <span role="columnheader">成交量（手）</span>
+              </div>
+              {stocks.map((item) => {
+                const up = item.changePct >= 0;
+                return (
+                  <a class:list={["stock-row", movementClass(item)]} href={cnStockUrl(item)} target="_blank" rel="noopener noreferrer" role="row">
+                    <span class="stock-name" role="cell">
+                      <strong>{item.symbol}</strong>
+                      <small>{item.name}</small>
+                    </span>
+                    <span class="stock-price" role="cell" data-label="最新价">{formatPrice(item.price)}</span>
+                    <span class="stock-delta" role="cell" data-label="涨跌额">{formatSigned(item.change)}</span>
+                    <span class="stock-change" role="cell" data-label="涨跌幅">
+                      {up ? "▲" : "▼"} {formatPercent(item.changePct)}
+                    </span>
+                    <span class="stock-turnover" role="cell" data-label="成交额（万元）" title={`${item.turnover} 元`}>
+                      {formatTenThousandYuan(item.turnover)}
+                    </span>
+                    <span class="stock-volume" role="cell" data-label="成交量（手）">{formatNumericValue(item.volume)}</span>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div class="empty-panel">暂时还没有成交活跃股票。</div>
+          )}
+        </section>
+
+        <section class="analysis-section" aria-labelledby="analysis-title">
+          <div class="section-head compact">
+            <div>
+              <h2 id="analysis-title">市场概况</h2>
+            </div>
+            {marketBreadth.length > 0 && (
+              <div class="breadth-strip" aria-label="市场广度">
+                {marketBreadth.map((item: CnMarketBreadth) => (
+                  <div class:list={["breadth-stat", item.direction === "out" ? "is-down" : item.direction === "flat" ? "" : "is-up"]}>
+                    <span class="breadth-label">{item.name}</span>
+                    <strong class="breadth-value">{formatNumericValue(item.value)}</strong>
+                    <span class="breadth-pct">{formatPercent(item.changePct)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div class="analysis-grid">
+            <article class="analysis-card analysis-card--gainers">
+              <div class="analysis-card-head"><h3>涨幅靠前</h3></div>
+              <div class="analysis-list">
+                {topGainers.length > 0 ? topGainers.map((item: CnRangeStock) => (
+                  <a class="analysis-row is-up" href={cnStockUrl(item)} target="_blank" rel="noopener noreferrer">
+                    <div class="analysis-row-main">
+                      <span class="row-name">{item.name}</span>
+                      <span class="row-badge">{formatPercent(item.changePct)}</span>
+                    </div>
+                    <span class="row-sub">{item.symbol} · {formatPrice(item.price)}</span>
+                  </a>
+                )) : <p>暂时还没有涨幅靠前股票。</p>}
+              </div>
+            </article>
+
+            <article class="analysis-card analysis-card--losers">
+              <div class="analysis-card-head"><h3>跌幅靠前</h3></div>
+              <div class="analysis-list">
+                {topLosers.length > 0 ? topLosers.map((item: CnRangeStock) => (
+                  <a class="analysis-row is-down" href={cnStockUrl(item)} target="_blank" rel="noopener noreferrer">
+                    <div class="analysis-row-main">
+                      <span class="row-name">{item.name}</span>
+                      <span class="row-badge">{formatPercent(item.changePct)}</span>
+                    </div>
+                    <span class="row-sub">{item.symbol} · {formatPrice(item.price)}</span>
+                  </a>
+                )) : <p>暂时还没有跌幅靠前股票。</p>}
+              </div>
+            </article>
+
+            <article class="analysis-card analysis-card--sectors">
+              <div class="analysis-card-head"><h3>板块风向</h3></div>
+              <div class="analysis-list">
+                {sectorTrends.length > 0 ? sectorTrends.map((item: CnSectorTrend) => (
+                  <a class:list={["analysis-row", movementClass(item)]} href={cnSectorUrl(item)} target="_blank" rel="noopener noreferrer">
+                    <div class="analysis-row-main">
+                      <span class="row-name">{item.name}</span>
+                      <span class="row-badge">{formatPercent(item.changePct)}</span>
+                    </div>
+                    <span class="row-sub">领涨 {item.leadingName} {formatPercent(item.leadingChangePct)}</span>
+                  </a>
+                )) : <p>暂时还没有板块风向。</p>}
+              </div>
+            </article>
+
+            <article class="analysis-card analysis-card--active">
+              <div class="analysis-card-head"><h3>放量/异动</h3></div>
+              <div class="analysis-list">
+                {activeStocks.length > 0 ? activeStocks.map((item: CnActiveStock) => (
+                  <a class:list={["analysis-row", movementClass(item)]} href={cnStockUrl(item)} target="_blank" rel="noopener noreferrer">
+                    <div class="analysis-row-main">
+                      <span class="row-name">{item.name}</span>
+                      <span class="row-badge">{formatPercent(item.changePct)}</span>
+                    </div>
+                    <span class="row-sub">{item.symbol} · {item.reason}</span>
+                  </a>
+                )) : <p>暂时还没有放量/异动股票。</p>}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <footer class="market-foot">
+          <span>行情可能有延迟，请以交易所和券商页面为准</span>
+          <strong>{disclaimer}</strong>
+        </footer>
+      </main>
+      <UiNewFooter />
+    </div>
+  </body>
+</html>

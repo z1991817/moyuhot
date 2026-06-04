@@ -44,6 +44,7 @@ tmp_home.json
 !.env.example
 !.env.*.example
 .claude/
+skills-lock.json
 
 # OS / editor noise
 .DS_Store

@@ -246,12 +246,6 @@ docker compose -f ops/docker-compose.yml up -d --build
 - 前端不直连 SeeSea，不暴露 SeeSea 原始字段。
 - 错误信息应脱敏，不向前端暴露内部路径、容器名或上游细节。
 
-## 发布前检查
-
-- 确认根目录 `LICENSE` 中的版权主体适合你的发布身份。
-- 确认 `ops/.env` 未被提交，真实密钥只保存在部署环境。
-- 将 `PUBLIC_SITE_URL` 改成你的公开域名，或保留本地地址用于自用部署。
-- 如果不提供 AI 助手能力，保持 `CHAT_GATEWAY_API_KEY` 为空，并在页面入口处隐藏或说明该功能不可用。
 
 ## 致谢
 
@@ -261,7 +255,7 @@ docker compose -f ops/docker-compose.yml up -d --build
 
 ## License
 
-本项目采用 MIT License，详见仓库根目录 `LICENSE` 文件。
+本项目采用 MIT License，详见仓库根目录 [LICENSE](./LICENSE) 文件。
 
 ## 支持 & 赞助
 
@@ -272,3 +266,7 @@ docker compose -f ops/docker-compose.yml up -d --build
 <p align="center">
   <img src="./docs/images/sponsor-qr.jpg" alt="赞助二维码" width="320" />
 </p>
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=z1991817/moyuhot&type=Date)](https://www.star-history.com/#z1991817/moyuhot&Date)

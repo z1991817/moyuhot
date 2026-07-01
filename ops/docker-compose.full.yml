@@ -1,0 +1,22 @@
+services:
+  seesea:
+    build:
+      context: .
+      dockerfile: seesea.Dockerfile
+    image: moyu-seesea:2.2.2
+    ports:
+      - "${SEESEA_PORT:-127.0.0.1:18080}:18080"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:18080/api/health', timeout=5).status==200 else 1)\""]
+      interval: 20s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+    restart: unless-stopped
+
+  api:
+    environment:
+      SEESEA_BASE_URL: http://seesea:18080
+    depends_on:
+      seesea:
+        condition: service_healthy

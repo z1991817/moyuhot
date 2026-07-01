@@ -15,7 +15,6 @@ const { active } = Astro.props;
 
 const navItems: NavItem[] = [
   { href: "/", label: "首页", id: "home" },
-  { href: "/ui-new/chat", label: "AI 助手", id: "chat" },
   {
     href: "/ui-new/finance",
     label: "理财",
@@ -23,14 +22,6 @@ const navItems: NavItem[] = [
     children: [
       { href: "/ui-new/a-share", label: "A股", id: "a-share", description: "沪深行情与市场分析" },
       { href: "/ui-new/finance", label: "美股", id: "finance", description: "三大指数与热门个股" },
-    ],
-  },
-  {
-    href: "/ui-new/toolbox/commands",
-    label: "工具箱",
-    id: "toolbox",
-    children: [
-      { href: "/ui-new/toolbox/commands", label: "命令手册", id: "toolbox-commands", description: "AI 工具常用指令速查" },
     ],
   },
   { href: "/ui-new/about", label: "关于", id: "about" },
@@ -112,10 +103,8 @@ const navItems: NavItem[] = [
 
   <nav class="ui-new-mobile-nav" aria-label="移动端主导航" hidden data-ui-new-mobile-nav>
     <a class:list={[{ active: active === "home" }]} href="/">首页</a>
-    <a class:list={[{ active: active === "chat" }]} href="/ui-new/chat">AI 助手</a>
     <a class:list={[{ active: active === "a-share" }]} href="/ui-new/a-share">A股</a>
     <a class:list={[{ active: active === "finance" }]} href="/ui-new/finance">美股</a>
-    <a class:list={[{ active: active === "toolbox" || active === "toolbox-commands" }]} href="/ui-new/toolbox/commands">工具箱</a>
     <a class:list={[{ active: active === "about" }]} href="/ui-new/about">关于</a>
   </nav>
 </header>

@@ -45,9 +45,32 @@ pytest -q
 
 ```bash
 cp ops/.env.example ops/.env
-# 编辑 ops/.env，填写 SEESEA_BASE_URL
 docker compose -f ops/docker-compose.yml up -d --build
 ```
+
+第一次体验也可以启动全家桶 Compose，它会同时启动 SeeSea：
+
+```bash
+docker compose -f ops/docker-compose.yml -f ops/docker-compose.full.yml up -d --build
+```
+
+## 新增或调整热榜来源
+
+摸鱼热榜当前不直接内置 SeeSea 源码，热榜数据主要来自 SeeSea HTTP API。通常有三类改动：
+
+1. **调整首页默认平台**
+
+   修改 [backend/app/config.py](backend/app/config.py) 中的 `seesea_default_platforms`。这里决定后端默认聚合哪些平台。
+
+2. **补平台名称、图标和分类**
+
+   后端平台名称在 [backend/app/platforms.py](backend/app/platforms.py)。新版 UI 的图标、描述、分类在 [frontend/src/lib/ui-new.ts](frontend/src/lib/ui-new.ts)。
+
+3. **新增非 SeeSea 直连来源**
+
+   参考 [backend/app/clients/v2ex.py](backend/app/clients/v2ex.py) 和 [backend/app/clients/linux_do.py](backend/app/clients/linux_do.py)。新增客户端后，在 [backend/app/trend_sources.py](backend/app/trend_sources.py) 合并结果，并确保输出统一为 `Trend` 模型。
+
+新增来源时请优先保证字段稳定、失败可降级、不会把内部错误直接暴露到前端。UI 改动请附截图。
 
 ## 代码风格
 

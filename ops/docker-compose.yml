@@ -6,11 +6,6 @@ services:
     image: moyu-api:latest
     environment:
       SEESEA_BASE_URL: ${SEESEA_BASE_URL:-http://host.docker.internal:18080}
-      CHAT_GATEWAY_BASE_URL: ${CHAT_GATEWAY_BASE_URL:-https://api.freetheai.xyz/v1}
-      CHAT_GATEWAY_API_KEY: ${CHAT_GATEWAY_API_KEY:-}
-      CHAT_GATEWAY_DEFAULT_MODEL: ${CHAT_GATEWAY_DEFAULT_MODEL:-fee/deepseek-v4-pro}
-      CHAT_GATEWAY_MODELS: ${CHAT_GATEWAY_MODELS:-fee/deepseek-v4-pro,fee/kimi-k2.6,opc/qwen3.6-plus-free,glm/glm-5,glm/glm-5.1,opc/minimax-m3-free,bbl/gpt-5.4-mini}
-      CHAT_GATEWAY_WEB_SEARCH_ENABLED: ${CHAT_GATEWAY_WEB_SEARCH_ENABLED:-false}
     ports:
       - "${MOYU_API_PORT:-127.0.0.1:18000}:8000"
     extra_hosts:
